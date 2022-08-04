@@ -26,7 +26,7 @@ from utils.lstm.preprocess import create_lstm_matrix
 # Step 00 - Load data
 # --------------------------------------------------
 # Define path
-PATH = Path('./objects/data.clean.csv')
+PATH = Path('./objects/datasets/tidy.csv')
 
 # Load data
 data = pd.read_csv(PATH,
@@ -183,7 +183,7 @@ import tensorflow as tf
 
 from utils.lstm.autoencoder import LSTMAutoencoder
 
-LATENT_DIM = 10
+LATENT_DIM = 3
 
 # Define early stop
 early_stop = tf.keras.callbacks.EarlyStopping(
@@ -231,7 +231,7 @@ if LATENT_DIM == 3:
     columns += ['z']
 
 df = pd.DataFrame(data=encoded,
-    columns=['f%s' % i for i in range(LATENT_DIM)]) #, columns=columns)
+    columns=['e%s' % i for i in range(LATENT_DIM)]) #, columns=columns)
 
 # Add labels
 df['PersonID'] = matrix2[:,:,-1][:,1] # Get first in row because all ae the same
@@ -267,16 +267,16 @@ for lbl in LABELS + ['PersonID']:
     if LATENT_DIM == 2:
         # Create figure
         fig = px.scatter(df,
-            x='x', y='y', color=lbl,
+            x='e0', y='e1', color=lbl,
             hover_data=df.columns.tolist(),
-            title='e')
+            title=str(path))
         fig.write_html(path / ('graph.%s.html' % lbl))
 
     if LATENT_DIM == 3:
         # Create figure
         fig = px.scatter_3d(df,
-            x='x', y='y', z='z', color=lbl,
+            x='e0', y='e1', z='e2', color=lbl,
             hover_data=df.columns.tolist(),
-            title='e')
+            title=str(path))
         # Save
         fig.write_html(path / ('graph.%s.html' % lbl))

@@ -47,7 +47,7 @@ LABELS = _LABELS['set1']
 # Create steps (see utils.settings.py)
 imputer = 'simp' # simp, iimp
 scaler = 'mmx'   # std, mmx, rbt, nrm
-method = 'pca'   # tsne, cca
+method = 'fica'   # pca, tsne, cca (not working)
 
 # Create pipeline
 pipe = Pipeline([
@@ -55,6 +55,10 @@ pipe = Pipeline([
     ('scaler', _SCALERS.get(scaler)),
     ('method', _METHODS.get(method))
 ])
+
+#print(data[FEATURES].isna().sum())
+#aux = data[FEATURES].dropna(how='any', subset=FEATURES)
+#print(aux[FEATURES].isna().sum())
 
 # Transform
 data[['x', 'y']] = pipe.fit_transform(data[FEATURES])
@@ -81,7 +85,7 @@ path.mkdir(parents=True, exist_ok=True)
 data.to_csv(path / 'encoded.csv')
 
 # Save plots
-for lbl in LABELS:
+for lbl in LABELS + FEATURES:
     # Create figure
     fig = px.scatter(data,
         x='x', y='y', color=lbl,

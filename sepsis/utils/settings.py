@@ -10,8 +10,15 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import RobustScaler
 from sklearn.decomposition import PCA
-from sklearn.cross_decomposition import CCA
+from sklearn.decomposition import KernelPCA
+from sklearn.decomposition import IncrementalPCA
+from sklearn.decomposition import FastICA
+from sklearn.decomposition import NMF
+from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.manifold import TSNE
+from sklearn.manifold import Isomap
+from sklearn.manifold import LocallyLinearEmbedding
+from sklearn.cross_decomposition import CCA
 
 # --------------------------------------------------
 # CONSTANTS
@@ -61,7 +68,14 @@ _SCALERS = {
 _METHODS = {
     'pca': PCA(n_components=2),
     'tsne': TSNE(n_components=2),
-    'cca': CCA(n_components=2)
+    'cca': CCA(n_components=2),
+    'icaf': FastICA(n_components=2),
+    'lda': LatentDirichletAllocation(n_components=2),
+    'nmf': NMF(n_components=2),
+    'pcak': KernelPCA(),
+    'pcai': IncrementalPCA(),
+    'iso': Isomap(n_components=2),
+    'lle': LocallyLinearEmbedding(n_components=2),
 }
 
 def get_scaler(scaler=None):

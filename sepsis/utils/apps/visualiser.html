@@ -1,0 +1,206 @@
+<head>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-csv/1.0.21/jquery.csv.min.js"></script>
+  <script src='https://cdnjs.cloudflare.com/ajax/libs/echarts/5.3.3/echarts.min.js'></script>
+  <!-- CSS only -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css"
+  integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx"
+  rel="stylesheet" crossorigin="anonymous">
+  <!-- JavaScript Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js"
+  crossorigin="anonymous"
+  integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa"></script>
+</head>
+<body>
+
+  <!-- ------------------------- -->
+  <!-- Jquery-CSV                -->
+  <!-- ------------------------- -->
+  <!--
+  <form id="myForm" class="btn btn-group btn-outline-primary m-5btn btn-group btn-outline-primary m-5">
+    <input type="file" id="csvFile" accept=".csv" class="file" data-show-preview="false"/>
+    <br/>
+    <input type="submit" id="submit" value="Submit"/>
+  </form>
+  -->
+
+
+  <div class="w-50">
+    <form id="myForm">
+      <input id="csvFile" accept=".csv" class="form-control mx-5 my-1" type="file">
+      <input id="submit" type="submit" value="Submit" style="visibility: hidden; display: none;"/>
+    </form>
+  </div>
+
+  <select id="column" class="btn btn-group btn-outline-secondary mx-5 my-1" name="column">
+    <option selected="selected">Please select column...</option>
+  </select>
+
+  <div id='myDiv' style="width: 800px; height: 400px;"></div>
+
+  <script>
+
+    // Constants
+    const colors = [
+      '#bbb',
+      '#37A2DA',
+      '#e06343',
+      '#37a354',
+      '#b55dba',
+      '#b5bd48',
+      '#8378EA',
+      '#96BFFF'
+    ];
+
+    // Components
+    const myForm = document.getElementById("myForm");
+    const csvFile = document.getElementById("csvFile");
+
+    // Data
+    var data = undefined;
+
+    // Graph
+    var chartDom = document.getElementById('myDiv');
+    var myChart = echarts.init(chartDom);
+    var option;
+
+    const unique = (value, index, self) => {
+      return self.indexOf(value) === index
+    }
+
+    function getVisualMapPiecewise(feature) {
+      /**
+       *
+       * @type {number}
+       */
+      let categories = data.map( d=> d[feature] ).filter(unique)
+      let visualMap =  {
+        show: true,
+        type: 'piecewise',
+        categories: categories,
+        dimension: feature,
+        inRange: {
+            color: colors
+        },
+        outOfRange: {
+          color: ['#ccc']
+        },
+        orient: 'vertical',
+        right: 10,
+        top: 'center',
+        realtime: false
+      }
+
+      return visualMap
+    }
+
+    function getVisualMapContinuous(feature) {
+      /**
+       *
+       * @type {number}
+       */
+      let min = Math.min(... data.map( d => d[feature] ))
+      let max = Math.max(... data.map( d => d[feature] ))
+      let visualMap = {
+        show: true,
+        type: 'continuous',
+        min: min,
+        max: max,
+        categories: undefined,
+        dimension: feature,
+        orient: 'vertical',
+        right: 10,
+        top: 'center',
+        text: ['HIGH', 'LOW'],
+        calculable: true,
+        inRange: {
+          color: ['#f2c31a', '#24b7f2']
+        }
+      }
+      return visualMap
+    }
+
+    function getVisualMap(feature) {
+      /**
+       *
+       * @type {number}
+       */
+      // Get unique values
+      let categories = data.map( d=> d[feature] ).filter(unique)
+      // Return map
+      if (categories.length <= 10)
+          return getVisualMapPiecewise(feature)
+      if (categories.length > 10)
+          return getVisualMapContinuous(feature)
+      return {}
+    }
+
+    // Enable dropdown select column.
+    $('#column').change(function() {
+      myChart.setOption({
+        visualMap: getVisualMap(this.value)
+      });
+    })
+
+    // Fake submit on file selection.
+    document.getElementById("csvFile").onchange = function() {
+        $('#submit').click()
+    };
+
+    // Load file
+    myForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      const input = csvFile.files[0];
+      const reader = new FileReader();
+
+      reader.onload = function (e) {
+        // Load data
+        data = $.csv.toObjects(e.target.result);
+
+        // Logging
+        console.log("Loaded data...", data)
+
+        // Fill select with columns.
+        for (var item in data[0]) {
+          $('#column').append(new Option(item, item))
+        }
+
+        // Create option
+        option = {
+          dataset: [
+            {
+              dimensions: Object.keys(data[0]),
+              source: data
+            },
+          ],
+          visualMap: {
+              show: false
+          },
+          tooltip: {
+            trigger: 'item',
+            axisPointer: {
+              type: 'cross'
+            }
+          },
+          xAxis: { name: '' },
+          yAxis: { name: '' },
+          series: [
+            {
+              symbolSize: 5,
+              encode: {
+                x: 'x', y: 'y',
+                tooltip: ['HCT', 'PLT', 'micro_code']
+              },
+              type: 'scatter'
+            }
+          ]
+        };
+
+        // Create
+        option && myChart.setOption(option);
+      };
+
+      reader.readAsText(input);
+    });
+  </script>
+</body>

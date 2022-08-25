@@ -1,0 +1,117 @@
+# Configuration for Iris.
+#
+# .. note: At the moment, the column with dates should be
+#          called dates and ignores completely the time
+#          information.
+
+# The column that identifies the patient. If not
+# specified or set to null, the index will be used
+# as identifier.
+pid: null
+
+# Location of the data.
+datapath: ./objects/datasets/tidy.csv
+
+# Path to store the models.
+outpath: ./objects/results/baseline/
+
+# Features to be used for training. The features will
+# be automatically sorted alphabetically. Thus, the
+# order does not matter.
+features:
+  - HCT
+  - HGB
+  - LY
+  - MCH
+  - MCHC
+  - MCV
+  - PLT
+  - RBC
+  - RDW
+  - WBC
+
+# Columns that will be considered as targets. These are
+# used to compute metrics such as the GMM (Gaussian
+# Mixture Models).
+targets:
+  - micro_code
+  - death
+  #- day
+
+outcomes:
+  - target
+  - label
+
+
+# The parameters to create the ParameterGrid to create and
+# evaluate different hyper-parameter configurations. Please
+# ensure that the hyper-parameters ae specified, otherwise
+# a default empty dictionary will be returned.
+params:
+  pca:
+    n_components: [2]
+
+  pcak:
+    n_components: [2]
+
+  pcai:
+    n_components: [2]
+
+  nmf:
+    n_components: [2]
+    tol: [0.0001, 0.001, 0.01]
+
+  icaf:
+    n_components: [2]
+
+  iso:
+    n_components: [2]
+    n_neighbors: [5, 10]
+
+  lle:
+    n_components: [2]
+    n_neighbors: [5, 10]
+    method:
+      - standard
+      - ltsa
+      - hessian
+      - modified
+
+  # The LatentDirichletAllocation does not work with negative values;
+  # thus, it raises an error when used with the StandardScaler()
+  # pre-processing step.
+  lda:
+    n_components: [2]
+    max_iter: [5]
+    learning_method: [online]
+    learning_offset: [50]
+    random_state: [0]
+
+  # The Multidimensional Scaling class does not have the method
+  # 'transform' and therefore it cannot compute transformation
+  # for new points.
+  mds:
+    n_components: [2]
+
+  # The Spectral Embedding class does not have the method
+  # 'transform' and therefore it cannot compute transformation
+  # for new points.
+  spe:
+    n_components: [2]
+
+  # The t-Distributed Stochastic Neighbor Embedding class
+  # does not have the method 'transform' and therefore it
+  # cannot compute transformation for new points.
+  tsne:
+    n_components: [2]
+    perplexity: [5, 30, 50]
+
+  sae:
+    # Remember that the first layer should be equal to the
+    # number of inputs and the last layer should be two so
+    # that the embeddings can be displayed in the 2D space.
+    module__layers:
+      - [10, 2]
+      - [10, 5, 2]
+    lr: [0.01, 0.001]
+    max_epochs: [1000]

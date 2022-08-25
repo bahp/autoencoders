@@ -1,0 +1,20 @@
+<html>
+  <head>
+     <title>{{ title }}</title>
+  </head>
+  <body>
+
+    <br><br>
+
+    <center>{{ title }}</center>
+
+    <br><br>
+
+    {% for t in thumbnails %}
+      <a href="/embedding?path={{ t }}">
+        <img src="/{{ t }}" width="150" height="150"/>
+      </a>
+    {% endfor %}
+
+  </body>
+</html>

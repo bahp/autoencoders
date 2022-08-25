@@ -120,13 +120,15 @@ from utils.utils import AttrDict
 with open(Path(args.yaml)) as file:
     CONFIG = AttrDict(yaml.full_load(file))
 
-path = Path(CONFIG.outpath)
+
+now = datetime.now().strftime('%y%m%d-%H%M%S')
+path = Path('%s-%s' % (CONFIG.outpath, now))
 
 grid = [
     {
         'imputer': ['simp'],
         'scaler': ['mmx', 'std'],
-        'method': ['icaf', 'iso', 'tsne', 'mds', 'spe'] #, 'umap']
+        'method': ['icaf', 'iso', 'tsne', 'mds', 'spe', 'sae', 'umap']
     },
     {
         'imputer': ['simp'],
@@ -141,13 +143,15 @@ grid = [
     }
 ]
 
+"""
 grid = [
     {
         'imputer': ['simp'],
         'scaler': ['std'],
-        'method': ['sae']
+        'method': ['umap']
     },
 ]
+"""
 
 grid = ParameterGrid(grid)
 
@@ -233,12 +237,13 @@ for i, e in enumerate(grid):
         # Save information
         # Save any html figure
         # Save configuration file
-        # np.save(path / 'matrix.npy', matrix)                      # matrix
-        # model.save(path / 'model.h5')                             # model
-        #df_encoded.to_csv(path / folder / hyper / 'encoded.csv')   # encoded
+        # np.save(path / 'matrix.npy', matrix)                       # matrix
+        # model.save(path / 'model.h5')                              # model
+        #df_encoded.to_csv(path / folder / hyper / 'encoded.csv')    # encoded
         #df_complete.to_csv(path / folder / hyper / 'complete.csv')  # complete
         data.to_csv(path / folder / hyper / 'data.csv')
 
+        # Create thumbnail
         plt.scatter(data.e0, data.e1, s=3)
         plt.tight_layout()
         plt.savefig(path / folder / hyper / 'thumbnail.jpg')

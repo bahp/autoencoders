@@ -1,4 +1,18 @@
 
+flask-app.py
+------------
+
+This is a flask app to facilitate the navigation through all the
+results stored in the different folders. To execute run the 
+following command...
+
+```
+$ python flask_app.py --ROOT <folderpath>
+```
+
+To visualise the results, open the browsers and go type the
+following URL: http://localhost:5555/
+
 01-prepare-data.py
 ------------------
 

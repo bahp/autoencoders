@@ -25,21 +25,20 @@
   -->
 
 
-  <div class="w-50">
-    <form id="myForm">
-      <input id="csvFile" accept=".csv" class="form-control mx-5 my-1" type="file">
-      <input id="submit" type="submit" value="Submit" style="visibility: hidden; display: none;"/>
-    </form>
+  <div class="text-center">
+
+    <br><br>
+    <span> {{ title }} </span>
+    <br><br>
+
+    <select class="btn btn-group btn-outline-secondary mx-5 my-1"
+            id="column" name="column">
+      <option selected="selected">Please select column...</option>
+    </select>
   </div>
-
-  <button id="link1" value=""></button>
-  <button id="link2"></button>
-
-  <select id="column" class="btn btn-group btn-outline-secondary mx-5 my-1" name="column">
-    <option selected="selected">Please select column...</option>
-  </select>
-
-  <div id='myDiv' style="width: 800px; height: 400px;"></div>
+  <div class="text-center">
+    <div id='myDiv' style="width: 50%; height: 80%;"></div>
+  </div>
 
   <script>
 
@@ -55,12 +54,8 @@
       '#96BFFF'
     ];
 
-    // Components
-    const myForm = document.getElementById("myForm");
-    const csvFile = document.getElementById("csvFile");
-
     // Data
-    var data = undefined;
+    var data = {{ data|tojson }};
 
     // Graph
     var chartDom = document.getElementById('myDiv');
@@ -145,66 +140,50 @@
       });
     })
 
-    // Fake submit on file selection.
-    document.getElementById("csvFile").onchange = function() {
-      $('#submit').click()
+
+    // Logging
+    console.log("Loaded data...", data)
+
+    // Fill select with columns.
+    for (var item in data[0]) {
+      $('#column').append(new Option(item, item))
+    }
+
+    // Create option
+    option = {
+        grid: {
+            left: '20%'
+        },
+      dataset: [
+        {
+          dimensions: Object.keys(data[0]),
+          source: data
+        },
+      ],
+      visualMap: getVisualMap('micro_code'),
+      tooltip: {
+        trigger: 'item',
+        axisPointer: {
+          type: 'cross'
+        }
+      },
+      xAxis: { min: 'dataMin', max: 'dataMax', name: 'Latent x' },
+      yAxis: { min: 'dataMin', max: 'dataMax', name: 'Latent y' },
+      title: { text: '' },
+      series: [
+        {
+          symbolSize: 5,
+          encode: {
+            x: 'e0', y: 'e1',
+            tooltip: ['HCT', 'PLT', 'micro_code']
+          },
+          type: 'scatter'
+        }
+      ]
     };
 
-    // Load file
-    myForm.addEventListener("submit", function (e) {
-      e.preventDefault();
-      const input = csvFile.files[0];
-      const reader = new FileReader();
+    // Create
+    option && myChart.setOption(option);
 
-      reader.onload = function (e) {
-        // Load data
-        data = $.csv.toObjects(e.target.result);
-
-        // Logging
-        console.log("Loaded data...", data)
-
-        // Fill select with columns.
-        for (var item in data[0]) {
-          $('#column').append(new Option(item, item))
-        }
-
-        // Create option
-        option = {
-          dataset: [
-            {
-              dimensions: Object.keys(data[0]),
-              source: data
-            },
-          ],
-          visualMap: {
-              show: false
-          },
-          tooltip: {
-            trigger: 'item',
-            axisPointer: {
-              type: 'cross'
-            }
-          },
-          xAxis: { min: 'dataMin', max: 'dataMax', name: 'Latent x' },
-          yAxis: { min: 'dataMin', max: 'dataMax', name: 'Latent y' },
-          title: { text: '' },
-          series: [
-            {
-              symbolSize: 5,
-              encode: {
-                x: 'e0', y: 'e1',
-                tooltip: ['HCT', 'PLT', 'micro_code']
-              },
-              type: 'scatter'
-            }
-          ]
-        };
-
-        // Create
-        option && myChart.setOption(option);
-      };
-
-      reader.readAsText(input);
-    });
   </script>
 </body>

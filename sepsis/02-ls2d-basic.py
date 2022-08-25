@@ -47,7 +47,7 @@ LABELS = _LABELS['set1']
 # Create steps (see utils.settings.py)
 imputer = 'simp' # simp, iimp
 scaler = 'mmx'   # std, mmx, rbt, nrm
-method = 'fica'   # pca, tsne, cca (not working)
+method = 'umap'   # pca, tsne, cca (not working)
 
 # Create pipeline
 pipe = Pipeline([
@@ -61,7 +61,7 @@ pipe = Pipeline([
 #print(aux[FEATURES].isna().sum())
 
 # Transform
-data[['x', 'y']] = pipe.fit_transform(data[FEATURES])
+data[['e0', 'e1']] = pipe.fit_transform(data[FEATURES])
 
 
 # ----------------------------------
@@ -88,7 +88,7 @@ data.to_csv(path / 'encoded.csv')
 for lbl in LABELS + FEATURES:
     # Create figure
     fig = px.scatter(data,
-        x='x', y='y', color=lbl,
+        x='e0', y='e1', color=lbl,
         hover_data=data.columns.tolist(),
         title=str(pipe))
 

@@ -1,5 +1,9 @@
 # Generic
 import numpy as np
+import torch
+
+from utils.ae.basic import SAE
+from utils.ae.skorch import SkorchAE
 
 # Specific
 from sklearn.experimental import enable_iterative_imputer  # noqa
@@ -18,7 +22,10 @@ from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.manifold import TSNE
 from sklearn.manifold import Isomap
 from sklearn.manifold import LocallyLinearEmbedding
+from sklearn.manifold import MDS
+from sklearn.manifold import SpectralEmbedding
 from sklearn.cross_decomposition import CCA
+from umap import UMAP
 
 # --------------------------------------------------
 # CONSTANTS
@@ -76,7 +83,12 @@ _METHODS = {
     'pcai': IncrementalPCA(),
     'iso': Isomap(n_components=2),
     'lle': LocallyLinearEmbedding(n_components=2),
+    'mds': MDS(n_components=2, max_iter=100, n_init=1),
+    'spe': SpectralEmbedding(n_components=2),
+    'umap': UMAP(),
+    'sae': SkorchAE(SAE, criterion=torch.nn.MSELoss)
 }
+
 
 def get_scaler(scaler=None):
     """Get the scaler"""

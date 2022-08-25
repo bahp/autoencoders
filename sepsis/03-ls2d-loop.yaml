@@ -13,7 +13,7 @@ pid: null
 datapath: ./objects/datasets/tidy.csv
 
 # Path to store the models.
-outpath: ./objects/results/baseline/
+outpath: ./objects/results/baseline
 
 # Features to be used for training. The features will
 # be automatically sorted alphabetically. Thus, the
@@ -113,5 +113,6 @@ params:
     module__layers:
       - [10, 2]
       - [10, 5, 2]
+      - [10, 8, 4, 2]
     lr: [0.01, 0.001]
-    max_epochs: [1000]
+    max_epochs: [1000, 5000]

@@ -20,14 +20,14 @@ from utils.plot.heatmaps import plot_windows
 TOPN_BIO, TOPN_ORG = 15, 5
 
 # To keep only those records with information
-# n days before ad n days after the microbiology
+# n days before and n days after the microbiology
 # sample was collected.
-DAY_S, DAY_E = -5, 1
+DAY_S, DAY_E = -1, 1
 
 # This variable enables the computation of the data
 # report using the pandas-profiling package. Note that
 # it is computed on the pivoted dataset.
-COMPUTE_REPORT = False
+COMPUTE_REPORT = True
 PLOT_PIVOT = False
 PLOT_RESAMPLE = False
 
@@ -45,7 +45,7 @@ data = pd.read_csv(PATH,
     dtype={'PersonID': 'str'},
     parse_dates=['date_collected',  # pathology date
                  'date_sample',     # microbiology date
-                 'date_outcome',    # ???
+                 'date_outcome',    # outcome date
                  'patient_dob'])
 
 # Load deaths
@@ -56,7 +56,7 @@ deaths = deaths.dropna(how='any')
 deaths = deaths.drop(columns='Unnamed: 0')
 
 # Combine deaths with data
-data = data.merge(deaths, on='PersonID')
+data = data.merge(deaths, on='PersonID', how='left')
 data['death_days'] = (data.date_sample - data.date_death).dt.days
 data['death'] = data.death_days.abs() < 600
 data.PersonID = data.PersonID.astype(str)
@@ -142,6 +142,8 @@ data = data.dropna(how='any', subset=['PersonID'])
 # n days before the microbiology sample was
 # collected.
 data = data[(data.day >= DAY_S) & (data.day <= DAY_E)]
+
+data = data[data.result > 0]
 
 # Keep only patients with all the data. Or
 # maybe keep patients with at least n days
@@ -269,7 +271,8 @@ rsmp['date_death'] = rsmp.PersonID.map(d)
 rsmp['day'] = (rsmp.date_collected - rsmp.date_sample).dt.days
 rsmp['idx_to_sample'] = (rsmp.date_collected - rsmp.date_sample).dt.days
 rsmp['idx_to_death'] = (rsmp.date_collected - rsmp.date_death).dt.days
-rsmp['death'] = rsmp.idx_to_death.abs() < 90
+rsmp['death'] = rsmp.idx_to_death.abs() < 10
+
 
 # Log
 print("\nFinal:")

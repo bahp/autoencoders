@@ -1,0 +1,18 @@
+<html>
+  <head>
+    <title> APP </title>
+  </head>
+  <body>
+
+    List of workbenches
+
+    <ul>
+      {% for wb in workbenches %}
+        <li>
+          <a href="/workbench?path={{ wb }}"> {{ wb }}</a>
+        </li>
+      {% endfor %}
+    </ul>
+
+  </body>
+</html>

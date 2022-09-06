@@ -1,0 +1,1 @@
+{'method__metric': 'euclidean', 'method__min_dist': 0.01, 'method__n_neighbors': 10}

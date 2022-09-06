@@ -1,0 +1,1 @@
+{'method__lr': 0.01, 'method__max_epochs': 5000, 'method__module__layers': [10, 5, 2]}

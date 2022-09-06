@@ -1,0 +1,1 @@
+{'method__learning_method': 'online', 'method__learning_offset': 50, 'method__max_iter': 5, 'method__n_components': 2, 'method__random_state': 0}

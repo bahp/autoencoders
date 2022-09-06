@@ -118,3 +118,30 @@ pca-simp-mmx
 It is possible to quickly visualise the data by opening the
 utils.apps.visualiser.html file in the browser and loading
 the corresponding data.csv file.
+
+
+04-bclass-loop-gscv.py
+----------------------
+
+```
+$ python 04-bclass-loop-gscv.py --yaml <filename>.yaml
+```
+
+First, configure the .yaml file appropriately.
+
+There are three type of .yaml files:
+  - normal: It uses raw features (e.g. HCT)
+  - delta: It uses raw features and deltas (E.g. HCT_d1)
+  - aggregated: It uses aggregated features (e.g. mean, min, max)
+
+
+The script creates a folder with the following structure:
+
+```
+outpath/mode
+  |- 220906-115556
+     |- grid0-idxn.csv       # Original data and preds.
+     |- grid1-idxn.csv       # Original data and preds.
+     |- gridsearch-xxx.yaml  # yaml config used.
+     |- gridsearch-xxx.csv   # Results for gridsearch.
+```

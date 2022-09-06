@@ -32,8 +32,8 @@ app = Flask(__name__,
 def page_index():
     """Displays all workbenches."""
     return render_template('index.html',
-        workbenches=[f for f in PATH.iterdir()
-            if f.is_dir()])
+        workbenches=sorted([f for f in PATH.iterdir()
+            if f.is_dir()]))
 
 @app.route('/workbench/')
 def page_workbench():
@@ -41,7 +41,7 @@ def page_workbench():
     # Get Path
     path = request.args.get('path')
     # Get thumbnails
-    thumbnails = list(Path(path).glob('**/*.jpg'))
+    thumbnails = sorted(list(Path(path).glob('**/*.jpg')))
     # Return
     return render_template('workbench.html',
         title=path, thumbnails=thumbnails)

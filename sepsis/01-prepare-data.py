@@ -14,6 +14,12 @@ from utils.plot.heatmaps import plot_windows
 # --------------------------------------------------
 # Configuration
 # --------------------------------------------------
+# The output path
+OUTPATH = Path('./objects/datasets/test')
+
+# The output filename
+FILENAME_DATA = 'data'
+
 # Cleaning constants that will be used to filter the
 # original data to keep the top N bio-markers and
 # organisms with lesser number of missing inputs.
@@ -22,24 +28,29 @@ TOPN_BIO, TOPN_ORG = 15, 5
 # To keep only those records with information
 # n days before and n days after the microbiology
 # sample was collected.
-DAY_S, DAY_E = -1, 1
+DAY_S, DAY_E, FILTER_DAY  = -1, 1, False
 
-# This variable enables the computation of the data
-# report using the pandas-profiling package. Note that
-# it is computed on the pivoted dataset.
-COMPUTE_REPORT = True
-PLOT_PIVOT = False
-PLOT_RESAMPLE = False
+# Remove those test that have a zero value. Note that
+# zero might be an outcome of a laboratory test in
+# certain situations (patients who are immunocompromised)
+FILTER_ZERO = False
+
+# Keep only most common bio-markers
+FILTER_BIO = False
+
+# Keep only most common organisms
+FILTER_ORG = False
+
 
 
 # --------------------------------------------------
 # Load data
 # --------------------------------------------------
-# Define path
-PATH = './objects/datasets/data.csv'
-DEATH = './objects/datasets/deaths.csv'
+# Define paths
+PATH = Path('./objects/datasets/data.csv')
+DEATH = Path('./objects/datasets/deaths.csv')
 
-# Load data
+# Load bio-markers
 data = pd.read_csv(PATH,
     #nrows=100000,
     dtype={'PersonID': 'str'},
@@ -47,6 +58,12 @@ data = pd.read_csv(PATH,
                  'date_sample',     # microbiology date
                  'date_outcome',    # outcome date
                  'patient_dob'])
+data = data.replace({
+    'micro_code': {
+        'CONS': 'CNS'
+    }
+})
+
 
 # Load deaths
 deaths = pd.read_csv(DEATH,
@@ -57,12 +74,6 @@ deaths = deaths.drop(columns='Unnamed: 0')
 
 # Combine deaths with data
 data = data.merge(deaths, on='PersonID', how='left')
-data['death_days'] = (data.date_sample - data.date_death).dt.days
-data['death'] = data.death_days.abs() < 600
-data.PersonID = data.PersonID.astype(str)
-
-# If before it will be about 24h gaps.
-#data['day'] = data.date
 
 # Normalize dates
 for d in ['date_collected',
@@ -72,6 +83,24 @@ for d in ['date_collected',
           'patient_dob']:
     data[d] = data[d].dt.normalize()
 
+
+data['death_days'] = (data.date_sample - data.date_death).dt.days
+data['death'] = data.death_days.abs() < 600
+data.death = data.death.astype(int)
+data.PersonID = data.PersonID.astype(str)
+
+# If before it will be about 24h gaps.
+#data['day'] = data.date
+
+"""
+# Normalize dates
+for d in ['date_collected',
+          'date_sample',
+          'date_outcome',
+          'date_death',
+          'patient_dob']:
+    data[d] = data[d].dt.normalize()
+"""
 
 # -------------------------------------
 # Step 00: Quick checks
@@ -141,25 +170,32 @@ data = data.dropna(how='any', subset=['PersonID'])
 # Keep only those records with information
 # n days before the microbiology sample was
 # collected.
-data = data[(data.day >= DAY_S) & (data.day <= DAY_E)]
+if FILTER_DAY:
+    data = data[(data.day >= DAY_S) & (data.day <= DAY_E)]
 
-data = data[data.result > 0]
+# Filter those records in which result <= 0.
+if FILTER_ZERO:
+    data = data[data.result > 0]
+
+# Keep only top N bio-markers.
+if FILTER_BIO:
+    data = data[data.code.isin(top_bio)]
+
+# Keep only top N organisms.
+if FILTER_ORG:
+    data = data[data.micro_code.isin(top_org)]
 
 # Keep only patients with all the data. Or
 # maybe keep patients with at least n days
 # worth of data.
-
-# Keep only top N bio-markers.
-data = data[data.code.isin(top_bio)]
-
-# Keep only top N organisms.
-data = data[data.micro_code.isin(top_org)]
 
 # Brief summary.
 print("\nInformation:")
 print("Shape:    %s" % str(data.shape))
 print("Patients: %s" % data.PersonID.nunique())
 
+# Create folder if it does not exist
+OUTPATH.mkdir(parents=True, exist_ok=True)
 
 # ----------------------------
 # Step 01: Pivot
@@ -191,9 +227,6 @@ piv = piv.set_index(['PersonID', 'date_collected'])
 #piv = piv.join(data[['micro_code', 'death', 'day', 'death_days']], how='left')
 
 
-if PLOT_PIVOT:
-    fig = plot_windows(piv, x=top_bio, title='PIVOTED')
-
 
 # ----------------------
 # Step 02: Resample
@@ -207,7 +240,7 @@ of consecutive empty days that are allowed to be filled.
 def resample_01(df, ffill=True):
     return df.droplevel(0) \
         .resample('1D').asfreq() \
-        .ffill() # filling missing!
+        #.ffill() # filling missing!
 
 # Re-sample
 rsmp = piv \
@@ -217,10 +250,6 @@ rsmp = piv \
 # Log
 print("\nResampled:")
 print(rsmp)
-
-# Plot
-if PLOT_RESAMPLE:
-    fig = plot_windows(rsmp, x=top_bio, title='RESAMPLED')
 
 
 # ---------------------
@@ -274,30 +303,68 @@ rsmp['idx_to_death'] = (rsmp.date_collected - rsmp.date_death).dt.days
 rsmp['death'] = rsmp.idx_to_death.abs() < 10
 
 
+# --------------------------------------
+# Add delta features
+# --------------------------------------
+# Add delta values
+def delta(x, features=None, periods=1):
+    """Computes delta (diff between days)
+
+    Parameters
+    ----------
+    x: pd.dataFrame
+        The DataFrame
+    features: list
+        The features to compute deltas
+    periods: int
+        The periods.
+    Returns
+    -------
+    """
+    aux = x[features].diff(periods=periods)
+    aux.columns = ['%s_d%s' % (e, periods)
+        for e in aux.columns]
+    return aux
+
+features_delta = [
+    'HCT',
+    'PLT',
+    'WBC',
+    'RDW',
+    'LY',
+    'MCV'
+]
+
+df_1 = rsmp.groupby('PersonID') \
+    .apply(delta,
+        periods=1,
+        features=features_delta
+    )
+
+df_2 = rsmp.groupby('PersonID') \
+    .apply(delta,
+        periods=2,
+        features=features_delta
+    )
+
+# Concat
+rsmp = pd.concat([rsmp, df_1, df_2], axis=1)
+
+
+
+# --------------------------------------
+# Add phenotypes
+# --------------------------------------
+# Add pathogenic column
+rsmp['pathogenic'] = rsmp.micro_code != 'CNS'
+
 # Log
 print("\nFinal:")
 print(rsmp)
 
-# Filename
-filename = 'tidy'
-
 # Save
-rsmp.to_csv('./objects/datasets/%s.csv' % filename)
+rsmp.to_csv(Path(OUTPATH) / ('%s.csv' % FILENAME_DATA))
 
-
-# -------------------------
-# Step 05: Pandas profiling
-# -------------------------
-# Libraries
-from pandas_profiling import ProfileReport
-
-if COMPUTE_REPORT:
-
-    # Create report
-    profile = ProfileReport(rsmp,
-        title="Sepsis Dataset",
-        explorative=False,
-        minimal=True)
-
-    # Save report
-    profile.to_file("./objects/datasets/report-%s.html" % filename)
+# --------------------------------------
+# Compute aggregated DataFrame
+# --------------------------------------

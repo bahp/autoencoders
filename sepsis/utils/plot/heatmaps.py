@@ -27,6 +27,10 @@ def plot_windows(data, x=None, rows=11, cols=11, scaler='rbt',
     #        scaler = _SCALERS.get(scaler)
     #   aux[x] = scaler.fit_transform(aux[x])
 
+    from utils.settings import _SCALERS
+    aux[x] = _SCALERS['mmx'].fit_transform(aux[x])
+
+
     # Figure
     fig = make_subplots(rows=rows, cols=cols,
         #vertical_spacing=,
@@ -71,6 +75,8 @@ def plot_windows(data, x=None, rows=11, cols=11, scaler='rbt',
     )
     fig.update_layout(
         title=title,
+        height=150*10,
+        width=150*10,
         coloraxis=dict(
             colorscale='Viridis'),
         showlegend=False

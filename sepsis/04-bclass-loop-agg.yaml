@@ -1,0 +1,116 @@
+# Configuration for Iris.
+#
+# .. note: At the moment, the column with dates should be
+#          called dates and ignores completely the time
+#          information.
+
+# The column that identifies the patient. If not
+# specified or set to null, the index will be used
+# as identifier.
+pid: null
+
+# Location of the data.
+datapath: ./objects/datasets/test/data.csv
+
+# Path to store the models.
+outpath: ./objects/results/classification/agg
+
+# Features to be used for training. The features will
+# be automatically sorted alphabetically. Thus, the
+# order does not matter.
+features:
+  - HCT_min
+  - HCT_max
+  - HGB_min
+  - HGB_max
+  - LY_min
+  - LY_max
+  - MCH_min
+  - MCH_max
+  - MCHC_min
+  - MCHC_max
+  - MCV_min
+  - MCV_max
+  - PLT_min
+  - PLT_max
+  - RBC_min
+  - RBC_max
+  - RDW_min
+  - RDW_max
+  - WBC_min
+  - WBC_max
+
+# Columns that will be considered as targets. These are
+# used to compute metrics such as the GMM (Gaussian
+# Mixture Models).
+targets:
+  - class_org
+  #- micro_code
+  #- death
+  #- day
+
+outcomes:
+  - pathogenic
+
+#
+filter:
+  day:
+    start: -5
+    end: 0
+  date_collected:
+    end: 2020-01-01 # not working
+
+# Create the grid. To see all the possible options go to
+# the utils.settings configuration file. A summary for
+# classification methods is shown below.
+#   imputer: simp, iimp
+#   scaler: std, mmx, rbt, nrm
+#   method: gnb, dtc, rfc, svm, ann, llr, etc, xgb
+#
+grid:
+  - sampler: [rus]
+    imputer: [simp]
+    scaler: [nrm]
+    method: [xgb]
+    #method: [gnb, dtc, svm, xgb, ann]
+  - imputer: [simp]
+    scaler: [nrm]
+    method: [rusboost]
+
+# The parameters to create the ParameterGrid to create and
+# evaluate different hyper-parameter configurations. Please
+# ensure that the hyper-parameters ae specified, otherwise
+# a default empty dictionary will be returned.
+params:
+  svm:
+    C: [1, 0.1, 0.01]
+    gamma: [1, 0.1, 0.01]
+    kernel: [rbf]
+    probability: [True]
+
+  ann:
+    hidden_layer_sizes:
+      - [20, 20]
+      - [100, 100]
+      - [100, 100, 100]
+    activation: [relu]
+    #solve: ['adam']
+    alpha: [1, 0.01]
+    #batch_size: [auto]
+    #learning_rate: [constant]
+    #learning_rate_init: [0.001]
+    #power_t: [0.5]
+    #max_iter: [1000]
+    #tol: [1e-4]
+    #warm_start: [False]
+    #momentum: [0.9]
+
+  xgb:
+    use_label_encoder: [False]
+    colsample_bytree: [0.1, 0.8]
+    gamma: [0.001, 1]
+    learning_rate: [0.01]    # default 0.1
+    max_depth: [2, 10]       # default 3
+    n_estimators: [10, 100]  # default 100
+    subsample: [0.2, 0.8]
+    eval_metric: [logloss]   # default logloss

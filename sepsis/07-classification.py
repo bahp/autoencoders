@@ -17,7 +17,7 @@ from pathlib import Path
 # --------------------------------------------------
 # Define path
 PATH = Path('./objects/results/')
-BENCH = PATH / 'lstm-simp-mmx-220804-144830'
+BENCH = PATH / 'lstm-simp-mmx-220809-161419'
 
 # Load data
 data = pd.read_csv(BENCH/ 'encoded.csv',
@@ -25,15 +25,21 @@ data = pd.read_csv(BENCH/ 'encoded.csv',
     parse_dates=[])
 
 
+print(data)
+data['Positive'] = True
+data.loc[data.micro_code=='CNS', 'Positive'] = False
+
 
 N = 10
 
 # Import some data to play with
-X = data.to_numpy()[:, :N]
+X = data.to_numpy()[:, 1:11]
 y = data.micro_code
+y = data.Positive
 
 print(X)
 print(y)
+print(y.unique())
 
 # Binarize the output
 y = label_binarize(y, classes=y.unique())
@@ -53,18 +59,29 @@ from sklearn.neural_network import MLPClassifier
 
 # Learn to predict each class against the other
 classifier = OneVsRestClassifier(
-    svm.SVC(kernel="rbf", probability=True, random_state=random_state)
+    #svm.SVC(kernel="rbf", probability=True, random_state=random_state)
     #RandomForestClassifier(max_depth=3, random_state=0)
-    #MLPClassifier(alpha=1, max_iter=1000),
+    MLPClassifier(alpha=1, max_iter=6000),
 )
+
+print(X_train)
+print(y_train)
 
 classifier = classifier.fit(X_train, y_train)
 
 from sklearn.metrics import classification_report
 
-report = classification_report(y_test, classifier.predict(X_test))
+y_pred = classifier.predict(X_test)
+
+report = classification_report(y_test, y_pred)
 
 print(report)
+
+from sklearn.metrics import confusion_matrix
+
+cm = confusion_matrix(y_test, y_pred)
+
+print(cm)
 
 import sys
 sys.exit()

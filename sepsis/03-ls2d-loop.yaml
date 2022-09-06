@@ -10,7 +10,7 @@
 pid: null
 
 # Location of the data.
-datapath: ./objects/datasets/tidy.csv
+datapath: ./objects/datasets/tidy-v2.csv
 
 # Path to store the models.
 outpath: ./objects/results/baseline
@@ -116,3 +116,8 @@ params:
       - [10, 8, 4, 2]
     lr: [0.01, 0.001]
     max_epochs: [1000, 5000]
+
+  umap:
+    n_neighbors: [5, 10, 20, 50, 200]
+    min_dist: [0.1, 0.01]
+    metric: ['euclidean']

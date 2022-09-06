@@ -14,3 +14,23 @@ class AttrDict(dict):
 
         for key in self.keys():
             self[key] = from_nested_dict(self[key])
+
+
+def delta_features():
+    """Computes delta features.
+
+    Returns
+    -------
+
+    """
+    pass
+
+
+
+def filter_topn():
+    """"""
+    pass
+
+def filter_dataset(df):
+    """"""
+    pass

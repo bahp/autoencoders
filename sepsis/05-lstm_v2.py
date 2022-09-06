@@ -182,26 +182,36 @@ import keras
 import tensorflow as tf
 
 from utils.lstm.autoencoder import LSTMAutoencoder
+from utils.lstm.autoencoder import LSTMClassifier
 
-LATENT_DIM = 3
+LATENT_DIM = 10
 
 # Define early stop
 early_stop = tf.keras.callbacks.EarlyStopping(
-    monitor='val_loss', min_delta=1e-3, patience=15, verbose=0,
+    monitor='val_loss', min_delta=1e-5, patience=15, verbose=0,
     mode='auto', baseline=None, restore_best_weights=True)
 
 # Define loss
 loss = tf.keras.losses.CosineSimilarity(
     axis=-1, reduction="auto", name="cosine_similarity"
 )
+los = 'mse'
 
 # Variables
 samples, timesteps, features = matrix.shape
+
 
 model = LSTMAutoencoder(
     timesteps=timesteps,
     features=features,
     latent_dim=LATENT_DIM,
+    loss=loss
+)
+
+model = LSTMClassifier(
+    timesteps=timesteps,
+    features=features,
+    outputs=2,
     loss=loss
 )
 
@@ -211,8 +221,8 @@ print(model.summary())
 # Fit model
 history = model.fit(x=matrix, y=matrix,
     validation_data=(matrix, matrix),
-    epochs=50, batch_size=16,
-    shuffle=False, callbacks=[early_stop])
+    epochs=500, batch_size=32,
+    shuffle=True, callbacks=[early_stop])
 
 
 aux = model.predict(matrix)

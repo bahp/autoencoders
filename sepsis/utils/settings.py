@@ -2,8 +2,17 @@
 import numpy as np
 import torch
 
+# XGboost
+import xgboost as xgb
+
 from utils.ae.basic import SAE
 from utils.ae.skorch import SkorchAE
+
+# Umport umap
+from umap import UMAP
+
+# Import scikits metrics
+from sklearn.metrics import make_scorer
 
 # Specific
 from sklearn.experimental import enable_iterative_imputer  # noqa
@@ -13,6 +22,8 @@ from sklearn.preprocessing import Normalizer
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import RobustScaler
+
+# Import scikts dimensionality reduction
 from sklearn.decomposition import PCA
 from sklearn.decomposition import KernelPCA
 from sklearn.decomposition import IncrementalPCA
@@ -25,7 +36,23 @@ from sklearn.manifold import LocallyLinearEmbedding
 from sklearn.manifold import MDS
 from sklearn.manifold import SpectralEmbedding
 from sklearn.cross_decomposition import CCA
-from umap import UMAP
+
+# Import scikits classifiers
+from sklearn.calibration import CalibratedClassifierCV
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.svm import SVC
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import ExtraTreesClassifier
+from sklearn.calibration import CalibratedClassifierCV
+
+
+from imblearn.over_sampling import RandomOverSampler
+from imblearn.under_sampling import RandomUnderSampler
+from imblearn.over_sampling import SMOTE
+from imblearn.ensemble import RUSBoostClassifier
 
 # --------------------------------------------------
 # CONSTANTS
@@ -62,6 +89,12 @@ _LABELS = {
 }
 
 # Elements from sci-kits
+_SAMPLERS = {
+    'ros': RandomOverSampler(),
+    'rus': RandomUnderSampler(),
+    'smt': SMOTE()
+}
+
 _IMPUTERS = {
     'simp': SimpleImputer(),
     'iimp': IterativeImputer()
@@ -72,7 +105,23 @@ _SCALERS = {
     'rbt': RobustScaler(),
     'nrm': Normalizer(),
 }
+
+_CLASSIFIERS = {
+    'gnb': GaussianNB(),
+    'dtc': DecisionTreeClassifier(),
+    'rfc': RandomForestClassifier(),
+    'svm': SVC(),
+    'ann': MLPClassifier(),
+    'llr': LogisticRegression(),
+    'etc': ExtraTreesClassifier(),
+    'xgb': xgb.XGBClassifier(),
+    # 'lgbm': lgbm.LGBMClassifier(),
+    'rusboost': RUSBoostClassifier()
+}
+
 _METHODS = {
+    # Transformers
+    # ------------
     'pca': PCA(n_components=2),
     'tsne': TSNE(n_components=2),
     'cca': CCA(n_components=2),
@@ -86,9 +135,25 @@ _METHODS = {
     'mds': MDS(n_components=2, max_iter=100, n_init=1),
     'spe': SpectralEmbedding(n_components=2),
     'umap': UMAP(),
-    'sae': SkorchAE(SAE, criterion=torch.nn.MSELoss)
+    'sae': SkorchAE(SAE, criterion=torch.nn.MSELoss),
+
 }
 
+# Add calibrated estimators
+def _calibrated_estimator(e):
+    return CalibratedClassifierCV(base_estimator=e)
+
+_CLASSIFIERS.update(
+    {'c{0}'.format(k):_calibrated_estimator(v)
+        for k,v in _CLASSIFIERS.items()})
+
+# Combine all
+_ALL = {}
+_ALL.update(_SAMPLERS)
+_ALL.update(_IMPUTERS)
+_ALL.update(_SCALERS)
+_ALL.update(_METHODS)
+_ALL.update(_CLASSIFIERS)
 
 def get_scaler(scaler=None):
     """Get the scaler"""

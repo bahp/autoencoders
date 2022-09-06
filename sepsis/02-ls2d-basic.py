@@ -7,6 +7,7 @@ Description:
 # Libraries
 import pandas as pd
 import numpy as np
+from pathlib import Path
 
 from datetime import datetime
 from sklearn.pipeline import Pipeline
@@ -20,10 +21,10 @@ from utils.settings import _METHODS
 # Load data
 # --------------------------------------------------
 # Define path
-PATH = './objects/datasets/tidy.csv'
+PATH = Path('./objects/datasets/test')
 
 # Load data
-data = pd.read_csv(PATH,
+data = pd.read_csv(PATH / 'data.csv',
     dtype={'PersonID': 'str'},
     parse_dates=['date_collected',
                  'date_sample'])

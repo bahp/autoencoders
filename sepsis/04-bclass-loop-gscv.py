@@ -14,6 +14,7 @@ Description:
 
 # Libraries
 import yaml
+import pickle
 import pandas as pd
 import numpy as np
 
@@ -29,6 +30,8 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import train_test_split
 
 from imblearn.pipeline import Pipeline
+
+from skopt import BayesSearchCV
 
 # Libraries
 from utils.prep import IQRTransformer
@@ -92,6 +95,7 @@ def custom_metrics(est, X, y):
     #    est.predict(X_hos),
     #    est.predict_proba(X_hos))
     #m.update({'hos_%s'%k:v for k,v in hos.items()})
+    m['score'] = est.score(X, y)
     # Return
     return m
 
@@ -247,11 +251,15 @@ def create_df_delta(data, features, label, groupby=None,
     return pd.concat([df_1, rsmp], axis=1)
     """
 
-    #print(features)
-    #print(label)
+    # Filter data
     df = data.copy(deep=True)
     features_delta = ['%s_d1' % e for e in features]
-    return df[features + features_delta + [label]]
+    df = df[features + features_delta + [label]]
+    df.replace([np.inf, -np.inf], np.nan, inplace=True)
+    df = df.dropna(how='any')
+
+    # Return
+    return df
 
 
 def create_df_aggregated(data, features, methods, label,
@@ -272,7 +280,9 @@ def create_df_aggregated(data, features, methods, label,
     df.columns = ['_'.join(col).strip()
         for col in df.columns.values]
     df.rename(columns={'%s_max' % label: label}, inplace=True)
+    # Return
     return df
+
 
 
 # ----------------------------------
@@ -300,6 +310,10 @@ args = parser.parse_args()
 # ----------------------------------
 # Set configuration
 # ----------------------------------
+"""
+   .. note: Possible to check whether configuration 
+            is valid.
+"""
 # Library
 import shutil
 from utils.utils import AttrDict
@@ -319,7 +333,8 @@ WORKBENCH.mkdir(parents=True, exist_ok=True)
 # Copy configuration
 shutil.copyfile(
     Path(args.yaml),
-    WORKBENCH / ('%s.yaml' % FILENAME))
+    WORKBENCH / ('%s.yaml' % FILENAME)
+)
 
 # Show
 print("\nCreate workbench... %s" % WORKBENCH)
@@ -394,23 +409,33 @@ df = create_fe_dataframe_from_yaml(data, CONFIG)
 X = df.iloc[:, :-1]
 y = df[CONFIG.outcome]
 
-# Split
-#X_cvs, X_hos, y_cvs, y_hos = train_test_split(
-#    X, y, test_size=0.0, random_state=42)
+# Create directory
+(WORKBENCH / 'data').mkdir(parents=True, exist_ok=True)
+
+# Save data
+np.save(WORKBENCH / 'data' / 'X.npy', X)
+np.save(WORKBENCH / 'data' / 'y.npy', y)
+df.to_csv(WORKBENCH / 'data' / 'Xy.csv')
+
+#X, y = _ALL.get('rus').fit_resample(X, y)
 
 """
+# Split
+X_cvs, X_hos, y_cvs, y_hos = train_test_split(
+    X, y, test_size=0.0, random_state=42)
+
+# Oversample
 from imblearn.over_sampling import RandomOverSampler
 oversample = RandomOverSampler(sampling_strategy='minority')
-
 X, y = oversample.fit_resample(X, y)
-"""
-# Create filter object
-#iqr = IQRTransformer(iqrrange=[25, 75], coefficient=1.5)
 
-#X = iqr.fit_transform(X)
+# Create filter object
+iqr = IQRTransformer(iqrrange=[25, 75], coefficient=1.5)
+X = iqr.fit_transform(X)
+"""
 
 # Create folds
-skf = StratifiedKFold(n_splits=5, shuffle=True)
+skf = StratifiedKFold(n_splits=10, shuffle=False)
 
 # Create grid
 grid = ParameterGrid(CONFIG.grid)
@@ -428,8 +453,6 @@ for i, e in enumerate(grid):
     #     ('scaler', _SCALERS.get(scaler)),
     #     ('method', _METHODS.get(method))
     # ])
-
-    #X_cvs, y_cvs = _ALL.get('smt').fit_resample(X, y)
 
     # Is re-sample working when included in the pipeline?
     # For some reason the training sample recorded in the
@@ -449,19 +472,31 @@ for i, e in enumerate(grid):
     # Logging
     print("\n%s/%s. Computing... %s" % (i+1, len(grid), folder))
 
-    # Get the param grid
-    method = acronyms[-1]
-    param_grid = CONFIG.params.get(method, {})
-    param_grid = {'method__%s' % k:v for k,v in param_grid.items()}
-
     # Create pipeline
     pipe = Pipeline(steps)
 
-    # Create grid search (cv is one single fold)
-    grid_search = GridSearchCV(pipe, param_grid=param_grid,
-                        cv=skf, scoring=custom_metrics,
-                        return_train_score=True, verbose=2,
-                        refit='gmean', n_jobs=1)
+    # Define the search space / param grid
+    method = acronyms[-1]
+    strategy = CONFIG.search.strategy
+    param_grid = CONFIG.search.space[strategy].get(method, {})
+    param_grid = {'method__%s' % k: v for k, v in param_grid.items()}
+
+    # Run cross validation
+    if CONFIG.search.strategy == 'bayes':
+
+        # Create bayesian search
+        grid_search = BayesSearchCV(pipe, search_spaces=param_grid,
+                            cv=skf, scoring=custom_metrics,
+                            return_train_score=True,
+                            refit='gmean', verbose=2, n_jobs=1)
+
+    elif CONFIG.search.strategy == 'grid':
+
+        # Create grid search
+        grid_search = GridSearchCV(pipe, param_grid=param_grid,
+                            cv=skf, scoring=custom_metrics,
+                            return_train_score=True, verbose=2,
+                            refit='gmean', n_jobs=1)
 
     # Fit grid search
     grid_search.fit(X, y)
@@ -471,12 +506,13 @@ for i, e in enumerate(grid):
 
     # Add information
     df_ = pd.DataFrame(results)
-    df_.insert(1, 'estimator', _METHODS.get(method).__class__.__name__)
+    df_.insert(1, 'estimator', steps[-1][1].__class__.__name__)
     df_.insert(0, 'folder', folder)
 
     # Append to total results
     compendium = compendium.append(df_)
 
+    """
     # Compute predictions (best estimator)
     y_prob = grid_search.best_estimator_.predict_proba(X)
     y_pred = grid_search.best_estimator_.predict(X)
@@ -486,12 +522,27 @@ for i, e in enumerate(grid):
     df[pcols] = y_prob
     df['y_true'] = y
     df['y_pred'] = y_pred
+    """
 
-    # Save
-    df.to_csv(WORKBENCH / ('grid%s-idx%s.csv' % (
-        i, grid_search.best_index_)))
+    # Create name for best algorithm.
+    name = 'grid%02d-%s-idx%s' % \
+        (i, folder, grid_search.best_index_)
 
+    # Save (y_true, y_pred, y_probs)
+    #path_ = WORKBENCH / 'probs'
+    #path_.mkdir(parents=True, exist_ok=True)
+    #df.to_csv(path_ / ('%s.csv' % name))
 
+    # Save best model for this grid
+    path_ = WORKBENCH / 'models'
+    path_.mkdir(parents=True, exist_ok=True)
+    pickle.dump(grid_search.best_estimator_,
+        open(path_ / ('%s.pkl' % name), 'wb'))
+
+    # Save grid search results (checkpoint)
+    path_ = WORKBENCH / 'checkpoint'
+    path_.mkdir(parents=True, exist_ok=True)
+    df_.to_csv(path_ / ('checkpoint-%s.csv' % i), index=False)
 
 
 

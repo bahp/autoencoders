@@ -1,0 +1,200 @@
+# Configuration for GridSearchCV.
+#
+# .. note: At the moment, the column with dates should be
+#          called dates and ignores completely the time
+#          information.
+
+# The column that identifies the patient. If not
+# specified or set to null, the index will be used
+# as identifier.
+pid: PersonID
+
+# Location of the data.
+datapath: ./objects/datasets/test/data.pctc.csv
+
+# Path to store the outputs.
+outpath: ./objects/results/classification
+
+# Features to be used for training. The features will
+# be automatically sorted alphabetically. Thus, the
+# order does not matter.
+features:
+  - HCT
+  #- HGB
+  - LY
+  #- MCH
+  #- MCHC
+  - MCV
+  - PLT
+  #- RBC
+  - RDW
+  - WBC
+  - CRP
+
+# The mode to use.
+#  - aggregation: Applies methods (e.g. min, max) to features.
+#  - delta:       Applies diff to features.
+#  - windows:     Applies
+#  - normal:      Uses the indicated features.
+mode: normal
+
+# Common feature engineering techniques. The
+# dictionaries might have the following
+# keys:
+#  features (list of features or <all>)
+#
+feature_engineering:
+  aggregation:
+    apply: True
+    features: all
+    methods: [mean, min, max]
+  delta:
+    apply: False
+    date: date_collected
+    features: all
+  windows:
+    apply: False
+  normal:
+    features: all
+
+# Columns that will be considered as targets. These are
+# used to compute metrics such as the GMM (Gaussian
+# Mixture Models). Mostly useful for LS2D.
+targets:
+  - class_org
+  #- micro_code
+  #- death
+  #- day
+
+# The outcome for classification problems.
+outcome: pathogenic
+
+# Information used to filter the dataset.
+filter:
+  day:
+    start: -5
+    end: 0
+  date_collected:
+    end: '2020-01-01' # within quotes.
+
+
+# Create the grid. To see all the possible options go to
+# the <utils.settings.py> configuration file. A summary for
+# classification methods is shown below. The method section
+# has to be included and can't contain none.
+#   imputer: simp, iimp
+#   scaler: std, mmx, rbt, nrm
+#   method: gnb, dtc, rfc, svm, ann, llr, etc, xgb
+#
+grid:
+  - sampler: [none, ros, rus]
+    imputer: [simp]
+    scaler: [std, mmx]
+    method: [gnb, llr, ann, xgb]
+
+  #- sampler: [none]
+  #  imputer: [simp]
+  #  scaler: [std, nrm]
+  #  method: [rusboost, bbc, brfc]
+
+
+
+# The parameters to create the ParameterGrid to create and
+# evaluate different hyper-parameter configurations. Please
+# ensure that the hyper-parameters ae specified, otherwise
+# a default empty dictionary will be returned.
+search:
+  strategy: grid # Bayes or Grid.
+  space:
+
+    # -----------
+    # Grid search
+    # -----------
+    grid:
+      gnb:
+        var_smoothing: [1.0e-9] # default 1.0e-9
+
+      llr:
+        max_iter: [1000]
+
+      svm:
+        C: [0.01, 0.1, 1.0, 10.0, 100.0]
+        gamma: [0.001, 0.01, 0.1, 1.0]
+        kernel: [rbf]
+        probability: [True]
+
+      ann:
+        hidden_layer_sizes: # default (100, )
+          - [20, 20]
+          - [100, 100]
+          - [100, 100, 100]
+        activation: [relu] # identity, logistic, tanh, relu (default)
+        #solve: ['adam']   # lbfgs, sgd, adam (default)
+        alpha: [0.01, 1.0] # default 0.0001
+        #batch_size: [auto] # default auto
+        #learning_rate: [constant] # constant (default), invscaling, adaptive
+        #learning_rate_init: [0.001] # default 0.001
+        #power_t: [0.5]
+        max_iter: [5000]
+        #tol: [1e-4]
+        #warm_start: [False]
+        #momentum: [0.9]
+
+      xgb:
+        use_label_encoder: [False]
+        #colsample_bytree: [0.1, 0.8]
+        #gamma: [0.001, 1]
+        #learning_rate: [0.01]    # default 0.1
+        #max_depth: [2, 10]       # default 3
+        #n_estimators: [10, 100]  # default 100
+        #subsample: [0.2, 0.8]
+        eval_metric: [logloss]   # default logloss
+
+      adaboost:
+        n_estimators: [20, 40, 50]
+
+      gradboost:
+        n_estimators: [20, 40, 100]
+        learning_rate: [0.1, 1.0]
+        max_depth: [1, 100]
+
+      bbc:
+        n_estimators: [10, 50, 100]
+
+      brfc:
+        n_estimators: [10, 50, 100]
+
+    # ------------
+    # Bayes search
+    # ------------
+    bayes:
+      gnb:
+        #priors: [None]
+        var_smoothing: [1.0e-9]
+
+      xgb:
+        use_label_encoder: [False]
+        colsample_bytree: [0.1, 1.0, log-uniform]
+        gamma: [0.001, 10.0, log-uniform]
+        learning_rate: [0.01, 0.1, log-uniform]  # default 0.1
+        max_depth: [2, 100, log-uniform]
+        n_estimators: [10, 500, log-uniform]     # default 100
+        subsample: [0.2, 1.0, log-uniform]
+        eval_metric: [logloss]   # default logloss
+
+      ann:
+        #hidden_layer_sizes:  # Fails for bayes
+        #  - [20, 20]
+        #  - [100, 100]
+        #  - [100, 100, 100]
+        activation: [relu]
+        #solve: ['adam']
+        alpha: [0.01, 1.0, log-uniform]
+        #batch_size: [auto]
+        #learning_rate: [constant]
+        #learning_rate_init: [0.001]
+        #power_t: [0.5]
+        max_iter: [5000]
+        #tol: [1e-4]
+        #warm_start: [False]
+        momentum: [0.1, 0.9, log-uniform]

@@ -46,13 +46,18 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import ExtraTreesClassifier
+from sklearn.ensemble import AdaBoostClassifier
+from sklearn.ensemble import GradientBoostingClassifier
+#from sklearn.ensemble import HistGradientBoostingClassifier
+from sklearn.ensemble import VotingClassifier
 from sklearn.calibration import CalibratedClassifierCV
-
 
 from imblearn.over_sampling import RandomOverSampler
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.over_sampling import SMOTE
 from imblearn.ensemble import RUSBoostClassifier
+from imblearn.ensemble import BalancedBaggingClassifier
+from imblearn.ensemble import BalancedRandomForestClassifier
 
 # --------------------------------------------------
 # CONSTANTS
@@ -116,7 +121,13 @@ _CLASSIFIERS = {
     'etc': ExtraTreesClassifier(),
     'xgb': xgb.XGBClassifier(),
     # 'lgbm': lgbm.LGBMClassifier(),
-    'rusboost': RUSBoostClassifier()
+    'rusboost': RUSBoostClassifier(),
+    'bbc': BalancedBaggingClassifier(),
+    'brfc': BalancedRandomForestClassifier(),
+    'adaboost': AdaBoostClassifier(),
+    'gradboost': GradientBoostingClassifier(),
+    #'histboost': HistGradientBoostingClassifier(),
+    #'vclf': VotingClassifier()
 }
 
 _METHODS = {
@@ -161,3 +172,14 @@ def get_scaler(scaler=None):
         if isinstance(scaler, str):
             return _SCALERS.get(scaler, None)
     return scaler
+
+
+def get_features_upper(df):
+    """"""
+    cols = df.columns.tolist()
+    cols = [c for c in cols if c.isupper()]
+    return cols
+
+def get_features_panels(df, panels):
+    """"""
+    return []

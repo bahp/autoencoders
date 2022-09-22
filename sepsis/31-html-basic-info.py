@@ -1,12 +1,25 @@
 #
+import argparse
 import pandas as pd
 from pathlib import Path
 
 # The output path
-OUTPATH = Path('./objects/datasets/test')
+PATH = './objects/datasets/test'
+
+# -------------------------
+# Parameters
+# -------------------------
+# Parameters
+parser = argparse.ArgumentParser()
+parser.add_argument("--path", type=str, nargs='?',
+                    const=PATH, default=PATH,
+                    help="path containing grid-search files.")
+args = parser.parse_args()
+
+
 
 # Load data
-df = pd.read_csv(OUTPATH / 'data.csv')
+df = pd.read_csv(Path(args.path) / 'data.csv')
 
 # --------------------------------------
 # Biomarkers
@@ -48,7 +61,7 @@ count_org['ratio'] = count_org.records / count_org.patients
 print(count_org)
 
 # Save
-count_org.to_csv(OUTPATH / '02.counts.organism.csv')
+count_org.to_csv(Path(args.path) / '02.counts.organism.csv')
 
 
 
@@ -64,8 +77,21 @@ count_org.to_csv(OUTPATH / '02.counts.organism.csv')
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+# Remove some columns
+aux = df.copy(deep=True) \
+    .drop(columns=[
+        'Index',
+        'Unnamed: 0',
+        'PersonID',
+        'idx_to_sample',
+        'idx_to_death'],
+        errors='ignore')
+
 # Compute correlation
-corr = df.corr()
+corr = aux.corr()
+
+# Show
+print(corr)
 
 # Display correlation
 sns.set(rc={'figure.figsize':(16,8)})
@@ -75,22 +101,53 @@ f = sns.heatmap(corr, annot=True, fmt='.2g',
 
 # Save
 plt.tight_layout()
-plt.savefig(OUTPATH / '02.correlation.png')
+plt.savefig(Path(args.path) / '02.correlation.png')
 
-"""
+
 # Libraries
 import plotly.graph_objects as go
+import plotly.express as px
 
+# Reverse corr
+#corr = corr[corr.columns[::-1]].T
+
+
+# Plot using imshow
+fig = px.imshow(corr*100,
+    color_continuous_scale='RdBu_r',
+    zmin=-100.0, zmax=100.0,
+    text_auto='.0f')
+
+fig.update_layout(
+    title='Correlation (Pearson)',
+    yaxis=dict(
+        tickmode='linear',
+        tickfont=dict(size=8)
+    ),
+    xaxis = dict(
+        tickmode='linear',
+        tickfont=dict(size=8)
+    )
+)
+fig.show()
+fig.write_html(Path(args.path) / '02.correlation.html')
+
+"""
+# Plot
 fig = go.Figure()
 fig.add_trace(
     go.Heatmap(
-        x=corr.index,
-        y=corr.columns,
-        z = df.corr(),
-        type = 'heatmap',
-        colorscale = 'Viridis'
+        x=corr.T.index,
+        y=corr.T.columns,
+        z=df.corr(),
+        type='heatmap',
+        colorscale='RdBu_r',
     )
 )
 
+fig.update_layout(
+    title='Correlation (Pearson)'
+)
+fig.data[0].update(zmin=-1.0, zmax=1.0)
 fig.show()
 """

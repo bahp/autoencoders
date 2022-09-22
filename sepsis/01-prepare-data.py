@@ -15,7 +15,7 @@ from utils.plot.heatmaps import plot_windows
 # Configuration
 # --------------------------------------------------
 # The output path
-OUTPATH = Path('./objects/datasets/test')
+OUTPATH = Path('./objects/datasets/test-fbc-pct-crp-wbs')
 
 # The output filename
 FILENAME_DATA = 'data'
@@ -42,12 +42,11 @@ FILTER_BIO = False
 FILTER_ORG = False
 
 
-
 # --------------------------------------------------
 # Load data
 # --------------------------------------------------
 # Define paths
-PATH = Path('./objects/datasets/data.csv')
+PATH = Path('./objects/datasets/data-fbc-pct-crp-wbs.csv')
 DEATH = Path('./objects/datasets/deaths.csv')
 
 # Load bio-markers
@@ -206,165 +205,170 @@ piv = pd.pivot_table(data,
     index=['PersonID', 'date_collected'],
     columns=['code'])
 
-
-
-
-#a = piv.resample('d', on=1).mean()
-
-
-
 # Basic formatting
 piv.columns = piv.columns.droplevel(0)
 piv = piv.reset_index()
 #piv.date_collected = piv.date_collected.dt.normalize()
 piv = piv.drop_duplicates(subset=['PersonID', 'date_collected'])
 piv = piv.set_index(['PersonID', 'date_collected'])
+
+
 #piv.index = piv.index.normalize()
-
 #data = data.set_index(['date_collected', 'PersonID'])
-
 #piv = piv.merge(data)
 #piv = piv.join(data[['micro_code', 'death', 'day', 'death_days']], how='left')
 
 
 
-# ----------------------
-# Step 02: Resample
-# ----------------------
-"""
-The method resample_01 is filling missing values for each
-patient using the forward fill. We could also top the amount
-of consecutive empty days that are allowed to be filled.
-"""
 
-def resample_01(df, ffill=True):
-    return df.droplevel(0) \
-        .resample('1D').asfreq() \
-        #.ffill() # filling missing!
+# ---------------------------
+# Delta transformation data
+# ---------------------------
+# Libraries
+from utils.sklearn.preprocessing import DeltaTransformer
 
-# Re-sample
-rsmp = piv \
-    .groupby(level=0) \
-    .apply(resample_01) \
+# Create transformer object
+delta = DeltaTransformer(by='PersonID',
+    date='date_collected', keep=True,
+    periods=[1,2], method='diff',
+    resample_params={'rule': '1D'},
+    function_params={'fill_method': 'ffill'})
 
-# Log
-print("\nResampled:")
-print(rsmp)
+# Transform
+df_diff = delta.fit_transform(piv.reset_index())
+
+# Create transformer object
+delta = DeltaTransformer(by='PersonID',
+    date='date_collected', keep=True,
+    periods=[1,2], method='pct_change',
+    resample_params={'rule': '1D'},
+    function_params={'fill_method': 'ffill'})
+
+# Transform (pct_change)
+df_pctc = delta.fit_transform(piv.reset_index())
+
 
 
 # ---------------------
 # Step 03: Phenotypes
 # ---------------------
-"""
-This section adds information that is of interest:
-
- - micro_code: str
-    The code of the organism
-    
- - date_sample: date
-    The date the microbiology sample was collected
-    
- - day_to_death
-    Number of days till patient death (from date_collected)
-    
- - death
-    Whether the patient died
-"""
 
 def a2b_map(df, c1, c2):
     """"""
     aux = df[[c1, c2]] \
         .dropna(how='any') \
         .drop_duplicates()
-    print(aux.groupby(c1).count() > 1)
     if (aux.groupby(c1).size() > 1).any():
-        print("   Warning! There are multiple values of %s for %s." % (c2, c1))
+        print("   Warning! There are multiple values of %s for %s."
+            % (c2, c1))
     return dict(zip(aux[c1], aux[c2]))
 
-# Reset index
-rsmp = rsmp.reset_index()
+def add_metadata(df, data):
+    """Includes metadata information.
 
-# Add microorganism code
-d = a2b_map(data, 'PersonID', 'micro_code')
-rsmp['micro_code'] = rsmp.PersonID.map(d)
-
-# Add date_sample
-d = a2b_map(data, 'PersonID', 'date_sample')
-rsmp['date_sample'] = rsmp.PersonID.map(d)
-
-# Add date_death
-d = a2b_map(data, 'PersonID', 'date_death')
-rsmp['date_death'] = rsmp.PersonID.map(d)
-
-# Add day
-rsmp['day'] = (rsmp.date_collected - rsmp.date_sample).dt.days
-rsmp['idx_to_sample'] = (rsmp.date_collected - rsmp.date_sample).dt.days
-rsmp['idx_to_death'] = (rsmp.date_collected - rsmp.date_death).dt.days
-rsmp['death'] = rsmp.idx_to_death.abs() < 10
-
-
-# --------------------------------------
-# Add delta features
-# --------------------------------------
-# Add delta values
-def delta(x, features=None, periods=1):
-    """Computes delta (diff between days)
+     - micro_code: str
+        The code of the organism
+     - date_sample: date
+        The date the microbiology sample was collected
+     - day_to_death
+        Number of days till patient death (from date_collected)
+     - death
+        Whether the patient died
 
     Parameters
     ----------
-    x: pd.dataFrame
-        The DataFrame
-    features: list
-        The features to compute deltas
-    periods: int
-        The periods.
+
     Returns
     -------
     """
-    aux = x[features].diff(periods=periods)
-    aux.columns = ['%s_d%s' % (e, periods)
-        for e in aux.columns]
-    return aux
+    # Reset index
+    df = df.reset_index()
 
-features_delta = [
-    'HCT',
-    'PLT',
-    'WBC',
-    'RDW',
-    'LY',
-    'MCV'
-]
+    # Add microorganism code
+    d = a2b_map(data, 'PersonID', 'micro_code')
+    df['micro_code'] = df.PersonID.map(d)
 
-df_1 = rsmp.groupby('PersonID') \
-    .apply(delta,
-        periods=1,
-        features=features_delta
-    )
+    # Add date_sample
+    d = a2b_map(data, 'PersonID', 'date_sample')
+    df['date_sample'] = df.PersonID.map(d)
 
-df_2 = rsmp.groupby('PersonID') \
-    .apply(delta,
-        periods=2,
-        features=features_delta
-    )
+    # Add date_death
+    d = a2b_map(data, 'PersonID', 'date_death')
+    df['date_death'] = df.PersonID.map(d)
 
-# Concat
-rsmp = pd.concat([rsmp, df_1, df_2], axis=1)
+    # Add day
+    df['day'] = (df.date_collected - df.date_sample).dt.days
+    df['idx_to_sample'] = (df.date_collected - df.date_sample).dt.days
+    df['idx_to_death'] = (df.date_collected - df.date_death).dt.days
+    df['death'] = df.idx_to_death.abs() < 10
 
+    # Add phenotypes
+    df['pathogenic'] = df.micro_code != 'CNS'
+
+    # Return
+    return df
+
+# Include metadata and phenotype
+df_diff = add_metadata(df_diff, data)
+df_pctc = add_metadata(df_pctc, data)
+
+# Save
+df_diff.to_csv(Path(OUTPATH) / ('%s.csv' % FILENAME_DATA))
+df_diff.to_csv(Path(OUTPATH) / ('%s.diff.csv' % FILENAME_DATA))
+df_pctc.to_csv(Path(OUTPATH) / ('%s.pctc.csv' % FILENAME_DATA))
 
 
 # --------------------------------------
 # Add phenotypes
 # --------------------------------------
 # Add pathogenic column
-rsmp['pathogenic'] = rsmp.micro_code != 'CNS'
+#rsmp['pathogenic'] = rsmp.micro_code != 'CNS'
 
 # Log
 print("\nFinal:")
-print(rsmp)
+#print(rsmp)
 
 # Save
-rsmp.to_csv(Path(OUTPATH) / ('%s.csv' % FILENAME_DATA))
+#rsmp.to_csv(Path(OUTPATH) / ('%s.csv' % FILENAME_DATA))
+
+
+import sys
+sys.exit()
 
 # --------------------------------------
 # Compute aggregated DataFrame
 # --------------------------------------
+# ..note: It is compute the min, max, median for the
+#         whole stay of the patient. However, this should
+#         be computed one the interesting period (e.g.
+#         -5 to 0 days from date_sample) is selected.
+
+# Libraries
+from utils.sklearn.preprocessing import AggregateTransformer
+
+# Define functions
+aggmap = {k: ['min', 'max', 'median']
+    for k in [
+        'HCT',
+        'HGB',
+        'LY',
+        'PLT',
+        'WBC',
+        'MCH',
+        'MCHC',
+        'MCV',
+        'PLT',
+        'RBC',
+        'RDW',
+        ]}
+aggmap['pathogenic'] = 'max'
+
+# Create transformer
+agg = AggregateTransformer(by='PersonID',
+    aggmap=aggmap, include=list(aggmap.keys()))
+
+# Transform data
+agg = agg.fit_transform(rsmp)
+
+# Save
+agg.to_csv(Path(OUTPATH) / ('%s.agg.csv' % FILENAME_DATA))

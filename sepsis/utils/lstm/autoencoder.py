@@ -96,7 +96,10 @@ class BinaryClassifierLSTMV1(Classifier):
         model.add(Dense(1, activation='sigmoid'))
         model.compile(loss='binary_crossentropy',
             optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-            metrics=['accuracy'])
+            metrics=[
+                tf.keras.metrics.Accuracy(),
+                tf.keras.metrics.AUC()
+            ])
         model.build()
 
         self.model_ = model
@@ -128,16 +131,32 @@ class LSTMClassifier(Classifier):
             dropout=0.2,
             recurrent_dropout=0.2,
             return_sequences=True,
-            name='encoder_1'))
-
-        model.add(LSTM(32, kernel_initializer='he_uniform', return_sequences=True, name='encoder_2'))
-        model.add(LSTM(16, kernel_initializer='he_uniform', return_sequences=False, name='encoder_3'))
+            name='encoder_1')
+        )
+        model.add(LSTM(32,
+            kernel_initializer='he_uniform',
+            return_sequences=True,
+            name='encoder_2')
+        )
+        model.add(LSTM(16,
+            kernel_initializer='he_uniform',
+            return_sequences=False,
+            name='encoder_3')
+        )
 
         model.add(Dropout(0.5))
-        model.add(Dense(100, activation='relu', kernel_initializer='he_uniform'))
+        model.add(Dense(100,
+            activation='relu',
+            kernel_initializer='he_uniform')
+        )
         model.add(Dense(1, activation='sigmoid'))
         model.compile(loss='binary_crossentropy',
-            optimizer=tf.keras.optimizers.Adam(learning_rate=0.02), metrics=['accuracy'])
+            optimizer=tf.keras.optimizers.Adam(learning_rate=0.02),
+            metrics=[
+              'accuracy',
+              #tf.keras.metrics.Accuracy(),
+              tf.keras.metrics.AUC()
+            ])
         model.build()
 
         self.model_ = model
@@ -324,3 +343,84 @@ class Time2Vec(tf.keras.layers.Layer):
     def compute_output_shape(self, input_shape):
         return (input_shape[0], input_shape[1] * (self.k + 1))
 """
+
+# https://machinelearningmastery.com/how-to-develop-lstm-models-for-time-series-forecasting/
+
+class StackedLSTM_MLM(Classifier):
+    """"Stacked LSTM from Machine Learning Mastery.
+    
+    Ref: https://machinelearningmastery.com/how-to-develop-lstm-models-for-time-series-forecasting/
+    """
+
+    def __init__(self, timesteps, features, outputs):
+        """
+
+        Parameters
+        ----------
+        timesteps
+        features
+        outputs
+        """
+        model = Sequential()
+        model.add(LSTM(50,
+            input_shape=(timesteps, features),
+            activation='relu',
+            return_sequences=True,
+            name='lstm_1')
+        )
+        model.add(LSTM(50,
+            name='lstm_2')
+        )
+        model.add(Dense(1,
+            activation='sigmoid'))
+        model.compile(
+            loss='binary_crossentropy',
+            optimizer=tf.keras.optimizers.Adam(learning_rate=0.02),
+            metrics=[
+                'accuracy',
+                #tf.keras.metrics.Accuracy(),
+                tf.keras.metrics.AUC()
+            ])
+        model.build()
+
+        self.model_ = model
+
+
+class BidirectionalLSTM_MLM(Classifier):
+    """"Stacked LSTM from Machine Learning Mastery.
+
+    Ref: https://machinelearningmastery.com/how-to-develop-lstm-models-for-time-series-forecasting/
+    """
+
+    def __init__(self, timesteps, features, outputs):
+        """
+
+        Parameters
+        ----------
+        timesteps
+        features
+        outputs
+        """
+        # Libraries
+        from keras.layers import Bidirectional
+
+        # Create model
+        model = Sequential()
+        model.add(Bidirectional(
+            LSTM(50, activation='relu'),
+            input_shape=(timesteps, features),
+            name='bidirectional_1')
+        )
+        model.add(Dense(1,
+             activation='sigmoid'))
+        model.compile(
+            loss='binary_crossentropy',
+            optimizer=tf.keras.optimizers.Adam(learning_rate=0.02),
+            metrics=[
+                'accuracy',
+                # tf.keras.metrics.Accuracy(),
+                tf.keras.metrics.AUC()
+            ])
+        model.build()
+
+        self.model_ = model

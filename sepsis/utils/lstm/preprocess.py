@@ -27,7 +27,7 @@ def create_lstm_matrix(data, features, groupby, w=5):
         """
         # Group
         for i in range(0, (aux.shape[0] - w)):
-            matrix.append(aux[i:i + w].to_numpy()[:, 2:])
+            matrix.append(aux[i:i + w].to_numpy()[:, :-1])
         # Return
         return None
 

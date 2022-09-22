@@ -1,15 +1,30 @@
 # Libraries
 import pandas as pd
+import argparse
 from pathlib import Path
 
 # Constant
-PATH = Path('./objects/datasets/test')
+PATH = './objects/datasets/test'
 
-# Load data
-data = pd.read_csv(PATH / 'data.csv')
+
 
 # -------------------------
-# Step 05: Pandas profiling
+# Parameters
+# -------------------------
+# Parameters
+parser = argparse.ArgumentParser()
+parser.add_argument("--path", type=str, nargs='?',
+                    const=PATH, default=PATH,
+                    help="path containing grid-search files.")
+args = parser.parse_args()
+
+# Load data
+data = pd.read_csv(Path(args.path) / 'data.csv')
+
+
+
+# -------------------------
+# Pandas profiling
 # -------------------------
 # Libraries
 from pandas_profiling import ProfileReport
@@ -21,4 +36,4 @@ profile = ProfileReport(data,
     minimal=True)
 
 # Save report
-profile.to_file(PATH / '01.data.report.html')
+profile.to_file(Path(args.path) / '01.data.report.html')

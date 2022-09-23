@@ -36,4 +36,4 @@ profile = ProfileReport(data,
     minimal=True)
 
 # Save report
-profile.to_file(Path(args.path) / '01.data.report.html')
+profile.to_file(Path(args.path) / 'graphs' / '01.data.report.html')

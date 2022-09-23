@@ -15,7 +15,7 @@ from utils.plot.heatmaps import plot_windows
 # Configuration
 # --------------------------------------------------
 # The output path
-OUTPATH = Path('./objects/datasets/test-fbc-pct-crp-wbs')
+OUTPATH = Path('./objects/datasets/set1')
 
 # The output filename
 FILENAME_DATA = 'data'
@@ -46,8 +46,11 @@ FILTER_ORG = False
 # Load data
 # --------------------------------------------------
 # Define paths
-PATH = Path('./objects/datasets/data-fbc-pct-crp-wbs.csv')
-DEATH = Path('./objects/datasets/deaths.csv')
+#PATH = Path('../objects/datasets/data-fbc-pct-crp-wbs.csv')
+#DEATH = Path('./objects/datasets/deaths.csv')
+
+PATH = Path('../datasets/Sepsis/data-set1.csv')
+DEATH = Path('../datasets/Sepsis/patient_deaths.csv')
 
 # Load bio-markers
 data = pd.read_csv(PATH,
@@ -305,18 +308,25 @@ def add_metadata(df, data):
     # Add phenotypes
     df['pathogenic'] = df.micro_code != 'CNS'
 
+    # Add sex and gender
+    features = ['PersonID', 'age', 'sex', 'sex_m', 'sex_f']
+    df_ = pd.read_csv('../datasets/Sepsis/db_demos.csv', dtype={'PersonID': 'str'})
+    df = df.merge(df_[features], on='PersonID', how='left')
+    df.sex = df.sex.astype(int)
+
     # Return
     return df
+
 
 # Include metadata and phenotype
 df_diff = add_metadata(df_diff, data)
 df_pctc = add_metadata(df_pctc, data)
+df_data = add_metadata(piv, data)
 
 # Save
-df_diff.to_csv(Path(OUTPATH) / ('%s.csv' % FILENAME_DATA))
+df_data.to_csv(Path(OUTPATH) / ('%s.csv' % FILENAME_DATA))
 df_diff.to_csv(Path(OUTPATH) / ('%s.diff.csv' % FILENAME_DATA))
 df_pctc.to_csv(Path(OUTPATH) / ('%s.pctc.csv' % FILENAME_DATA))
-
 
 # --------------------------------------
 # Add phenotypes

@@ -7,14 +7,10 @@ from pathlib import Path
 from sklearn.preprocessing import LabelEncoder
 
 # Configure
-OUTPATH = Path('./objects/datasets/test-fbc-pct-crp-wbs')
+OUTPATH = Path('./objects/datasets/set1')
 
-FEATURES = [
-    # Others
-    'WBIC',
-    'CRP',
 
-    # FBC
+F_FBC = [
     'PLT',
     'HGB',
     'HCT',
@@ -25,8 +21,9 @@ FEATURES = [
     'RBC',
     'RDW',
     'WBC',
+]
 
-    # WBS
+F_WBS = [
     'WFIO2',
     'WCL',
     'WG',
@@ -46,42 +43,87 @@ FEATURES = [
     'WSO2'
 ]
 
+F_ALT = [
+    'ALT'
+]
+
+F_BONE = [
+    'ALB',
+    'ALP',
+    'CALC',
+    'CALCOR',
+    'GLOB',
+    'PHOS',
+    'TP'
+]
+
+
+FEATURES = F_BONE
+
 # Load data
 df = pd.read_csv(OUTPATH / 'data.csv')
 
-# Remove NaN
-df = df.dropna(how='any', subset=FEATURES)
 
-
+# ---------------------------------------------------------------
+# Select kbest from each panel
+# ---------------------------------------------------------------
+# Libraries
 from scipy import stats
-from sklearn.feature_selection import SelectKBest, f_classif, chi2
+from sklearn.feature_selection import SelectKBest
+from sklearn.feature_selection import f_classif, chi2
 
-X = df[FEATURES]
-y = df.pathogenic
+# Define map
+MAP = {
+    'fbc': F_FBC,
+    'wbs': F_WBS,
+    'bone': F_BONE,
+    'other': [
+        'CRP',
+        'ALT',
+        'BIL',
+        'sex',
+        'age'
+    ]
+}
+
+fig, ax = plt.subplots(2, 2, figsize=[10, 5])
+axes = ax.flatten()
+
+# Loop
+for i, (k,v) in enumerate(MAP.items()):
+
+    # Remove NaN
+    df_ = df.copy(deep=True) \
+            .dropna(how='any', subset=v)
+
+    X = df_[v]
+    y = df_.pathogenic
+
+    # Fit
+    selector = SelectKBest(f_classif, k='all')
+    selector.fit(X, y)
+
+    # Compute scores
+    scores = -np.log10(selector.pvalues_)
+    scores /= scores.max()
+
+    # Plot
+    X_indices = np.arange(X.shape[-1])
+    axes[i].bar(X_indices, scores, width=0.2)
+    axes[i].set_title("Feature univariate score")
+    axes[i].set_xticks(X_indices)
+    axes[i].set_xticklabels(v, rotation=90, fontdict={'fontsize': 10})
+    plt.xlabel("Feature number")
+    plt.ylabel(r"Univariate score ($-Log(p_{value})$)")
+    plt.tight_layout()
+
+    # Other
+    # tau, p_value = stats.kendalltau(X, y)
 
 
-#tau, p_value = stats.kendalltau(X, y)
+plt.savefig(OUTPATH / 'graphs' / '03.importance.univariate.png')
+plt.show()
 
-#print(tau, pvalue)
-
-selector = SelectKBest(f_classif, k=4)
-selector.fit(X, y)
-scores = -np.log10(selector.pvalues_)
-scores /= scores.max()
-
-print(scores)
-
-import matplotlib.pyplot as plt
-
-X_indices = np.arange(X.shape[-1])
-fig, ax = plt.subplots(figsize=[10, 5])
-ax.bar(X_indices, scores, width=0.2)
-ax.set_title("Feature univariate score")
-ax.set_xticks(X_indices)
-ax.set_xticklabels(FEATURES, rotation=90, fontdict={'fontsize': 10})
-plt.xlabel("Feature number")
-plt.ylabel(r"Univariate score ($-Log(p_{value})$)")
-plt.tight_layout()
 
 """
 ax.bar(range(len(importance)), importance)
@@ -89,26 +131,30 @@ ax.set_xticks(range(len(importance)))
 ax.set_xticklabels(features, rotation=45, fontdict={'fontsize': 3})
 ax.set_title(model.__class__.__name__)
 """
-plt.show()
 
 
-import sys
-sys.exit()
+
+
 # ---------------------------
-#
+# Display box-plots
 # ---------------------------
+# Libraries
 import plotly.express as px
 
+# Show data
 print(df)
 
+FEATURES = [c for c in df.columns if c.isupper()]
+FEATURES = [df.columns[4:15]]
 
+# Met
 aux = pd.melt(df,
     id_vars=[
         'PersonID',
         'date_collected',
         'pathogenic'
     ],
-    value_vars=df.columns[4:34]  #4, -8
+    value_vars=FEATURES #4, -8
 )
 
 fig = px.box(aux, #x="variable",

@@ -48,7 +48,7 @@ GROUPBY = ['day', 'micro_code']
 TOP_BIO = 10
 
 # Path
-PATH = Path('./objects/datasets/test-fbc-pct-crp-wbs')
+PATH = Path('./objects/datasets/test')
 
 
 # -------------------------
@@ -232,4 +232,4 @@ fig.update_layout(
 
 # Show
 fig.show()
-fig.write_html(Path(args.path) / '04.ts.biomarker.grid.html')
+fig.write_html(Path(args.path) / 'graphs' / '04.ts.biomarker.grid.html')

@@ -61,8 +61,8 @@ count_org['ratio'] = count_org.records / count_org.patients
 print(count_org)
 
 # Save
-count_org.to_csv(Path(args.path) / '02.counts.organism.csv')
-
+#count_org.to_csv(Path(args.path) / 'graphs' / '02.counts.organism.csv')
+count_org.to_html(Path(args.path) / 'graphs' / '02.counts.organism.html')
 
 
 # ---------------------------------------
@@ -93,6 +93,7 @@ corr = aux.corr()
 # Show
 print(corr)
 
+"""
 # Display correlation
 sns.set(rc={'figure.figsize':(16,8)})
 f = sns.heatmap(corr, annot=True, fmt='.2g',
@@ -101,8 +102,8 @@ f = sns.heatmap(corr, annot=True, fmt='.2g',
 
 # Save
 plt.tight_layout()
-plt.savefig(Path(args.path) / '02.correlation.png')
-
+plt.savefig(Path(args.path) / 'graphs' / '02.correlation.png')
+"""
 
 # Libraries
 import plotly.graph_objects as go
@@ -119,7 +120,10 @@ fig = px.imshow(corr*100,
     text_auto='.0f')
 
 fig.update_layout(
-    title='Correlation (Pearson)',
+    title=dict(
+        text='Correlation (Pearson)',
+        x=0.5
+    ),
     yaxis=dict(
         tickmode='linear',
         tickfont=dict(size=8)
@@ -130,7 +134,7 @@ fig.update_layout(
     )
 )
 fig.show()
-fig.write_html(Path(args.path) / '02.correlation.html')
+fig.write_html(Path(args.path) / 'graphs' / '02.correlation.html')
 
 """
 # Plot

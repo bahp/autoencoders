@@ -361,6 +361,9 @@ data = data[data.date_collected < CONFIG.filter.date_collected.end]
 #          for training the models.
 data = data.dropna(how='any', subset=CONFIG.features)
 
+if 'sex' in data:
+    data.sex = data.sex.astype(int)
+
 # Show data
 print("\nData:")
 print(data)

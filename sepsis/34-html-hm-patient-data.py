@@ -14,16 +14,18 @@ from utils.plot.heatmaps import plot_windows
 # Configuration
 # --------------------------------------------------
 
-from utils.settings import _SCALERS
+from sklearn.preprocessing import MinMaxScaler
 
 # The output path
-PATH = Path('./objects/datasets/test-fbc-pct-crp-wbs')
+PATH = Path('./objects/datasets/test')
 
-import argparse
 
 # -------------------------
 # Parameters
 # -------------------------
+# Libraries
+import argparse
+
 # Parameters
 parser = argparse.ArgumentParser()
 parser.add_argument("--path", type=str, nargs='?',
@@ -32,35 +34,18 @@ parser.add_argument("--path", type=str, nargs='?',
 args = parser.parse_args()
 
 
+# Read data
 aux = pd.read_csv(Path(args.path) / 'data.csv')
 
+# Show
+print("\n")
 print(aux)
 
-F = ['WBC',
-     'PLT',
-     'HGB',
-     'MCV',
-     'HCT',
-     'MCHC',
-     'MCH',
-     'RBC',
-     'RDW',
-     'LY' ,
-     'MPV',
-     'NE' ,
-     'BA' ,
-     'EO' ,
-     'MO' ,
-     'NRBCA',
-     'NEUT',
-     'BASO',
-     'EOS',
-     'MONO',
-     'HCT_d1',
-     'PLT_d1']
+# Get all columns which are uppercase.
+F = [c for c in aux.columns.tolist() if c.isupper()]
 
-
-aux[F] = _SCALERS['mmx'].fit_transform(aux[F])
+# Normalise features
+aux[F] = MinMaxScaler().fit_transform(aux[F])
 
 
 def score(x, features=None, day_s=-5, day_e=5):
@@ -94,33 +79,30 @@ def score(x, features=None, day_s=-5, day_e=5):
     # Return
     return num/den
 
-#aux = aux[aux.PersonID.isin(['105053'])]
-
-# Get person score
-person_score = aux.groupby('PersonID') \
-    .apply(score, day_s=-5, day_e=5, features=F) \
-    .sort_values(ascending=False)
-
-# Add score to aux
-#aux = aux.merge(person_score.to_frame(), on='PersonID', how='left')
-
+#aux = aux[aux.PersonID.isin([105053, 2506109])]
+#aux = aux[aux.PersonID.isin([2506109])]
 #print(aux)
 
+# Get person score
+DAY_S, DAY_E = -5, 5
+person_score = aux.groupby('PersonID') \
+    .apply(score, day_s=DAY_S, day_e=DAY_E, features=F) \
+    .sort_values(ascending=False) \
+    .rename('score')
 
+# Add score to aux
+#aux = aux.merge(person_score.to_frame(),
+#    on='PersonID', how='left') \
+#    .sort_values(by='score', ascending=False)
 
 # Filter
 aux = aux[aux.PersonID.isin( \
-    person_score[person_score >= 0.75].index)]
-
+    person_score[person_score >= 0.50].index)]
 
 # Show
 print("\nPerson score (window completeness):")
 print(person_score)
 print("\nOver 0.75 completeness: %s" % aux.PersonID.nunique())
-
-
-
-
 
 
 # -----------------------------
@@ -134,7 +116,7 @@ from plotly.subplots import make_subplots
 g = list(aux.groupby('PersonID'))[:50]
 
 # Configure
-COLS = 8
+COLS = 3
 ROWS = (len(g) // COLS) + 1
 SUBPLOT_TITLES = ['%s' % i for i in range(ROWS*COLS)]
 
@@ -143,13 +125,19 @@ print("\nFigure grid: (%s, %s)" % (ROWS, COLS))
 
 # Create Figure
 fig = make_subplots(rows=ROWS, cols=COLS,
-    shared_yaxes=True, shared_xaxes=True,
+    shared_yaxes=True, shared_xaxes=False,
     horizontal_spacing=0.02,
     vertical_spacing=0.02,
     subplot_titles=SUBPLOT_TITLES)
 
 # Display
-for i, (name, df_) in enumerate(g):
+#for i, (name, df_) in enumerate(g):
+
+for i,name in enumerate(person_score.index[:100]):
+
+    print("Plotting...", i, name)
+
+    df_ = aux[aux.PersonID==name]
 
     # Break
     if i > (ROWS * COLS) - 1:
@@ -176,6 +164,9 @@ for i, (name, df_) in enumerate(g):
         ),
         row=row, col=col)
 
+
+
+
     """
     fig.add_annotation(
         xref="x domain",
@@ -187,6 +178,11 @@ for i, (name, df_) in enumerate(g):
     # Update text (hacks)
     fig.layout.annotations[i].update(text=title)
 
+
+#fig.add_hline(y=DAY_S)
+#fig.add_hline(y=DAY_E)
+fig.add_hrect(y0=DAY_S, y1=DAY_E, line_width=0,
+    fillcolor="red", opacity=0.2)
 
 # Update axes
 fig.update_yaxes(
@@ -205,8 +201,8 @@ fig.update_layout(
              % aux.PersonID.nunique(),
         x=0.5
     ),
-    height=400*ROWS,
-    width=200*COLS,
+    height=500*ROWS,
+    width=500*COLS,
     coloraxis=dict(
         colorscale='Viridis'),
     showlegend=False
@@ -216,4 +212,4 @@ fig.update_coloraxes(
 )
 
 fig.show()
-fig.write_html(Path(args.path) / '05.hm.patient.data.html')
+fig.write_html(Path(args.path) / 'graphs' / '05.hm.patient.data.html')

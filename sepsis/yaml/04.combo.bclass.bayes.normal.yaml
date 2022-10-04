@@ -52,12 +52,16 @@ features:
   - K
   - UREA
 
-# The mode to use.
+
+# The outcome for classification problems.
+outcome: pathogenic
+
+# The strategy to use.
 #  - aggregation: Applies methods (e.g. min, max) to features.
 #  - delta:       Applies diff to features.
 #  - windows:     Applies
 #  - normal:      Uses the indicated features.
-mode: normal
+strategy: normal
 
 # Common feature engineering techniques. The
 # dictionaries might have the following
@@ -66,11 +70,9 @@ mode: normal
 #
 feature_engineering:
   aggregation:
-    apply: True
     features: all
     methods: [mean, min, max]
   delta:
-    apply: False
     date: date_collected
     features: all
   windows:
@@ -86,9 +88,6 @@ targets:
   #- micro_code
   #- death
   #- day
-
-# The outcome for classification problems.
-outcome: pathogenic
 
 # Information used to filter the dataset.
 filter:

@@ -10,7 +10,7 @@
 pid: PersonID
 
 # Location of the data.
-datapath: ./objects/datasets/test-crp/data.diff.csv
+datapath: ./objects/datasets/set1/data.csv
 
 # Path to store the outputs.
 outpath: ./objects/results/classification
@@ -19,23 +19,32 @@ outpath: ./objects/results/classification
 # be automatically sorted alphabetically. Thus, the
 # order does not matter.
 features:
+  - CRP
   - HCT
   - HGB
-  - LY
-  - MCH
-  - MCHC
-  - MCV
   - PLT
   - RBC
   - RDW
   - WBC
+  - CL
+  - CRE
+  - K
+  - UREA
+  - ALB
+  - ALP
+  - BIL
 
-# The mode to use.
+
+
+# The outcome for classification problems.
+outcome: pathogenic
+
+# The strategy to use.
 #  - aggregation: Applies methods (e.g. min, max) to features.
 #  - delta:       Applies diff to features.
 #  - windows:     Applies
 #  - normal:      Uses the indicated features.
-mode: delta
+strategy: aggregation
 
 # Common feature engineering techniques. The
 # dictionaries might have the following
@@ -44,11 +53,9 @@ mode: delta
 #
 feature_engineering:
   aggregation:
-    apply: True
     features: all
     methods: [mean, min, max]
   delta:
-    apply: False
     date: date_collected
     features: all
   windows:
@@ -65,16 +72,13 @@ targets:
   #- death
   #- day
 
-# The outcome for classification problems.
-outcome: pathogenic
-
 # Information used to filter the dataset.
 filter:
   day:
-    start: -5
+    start: -9
     end: 0
   date_collected:
-    end: '2020-01-01' # within quotes.
+    end: '2019-012-31' # within quotes.
 
 
 # Create the grid. To see all the possible options go to
@@ -86,16 +90,15 @@ filter:
 #   method: gnb, dtc, rfc, svm, ann, llr, etc, xgb
 #
 grid:
-  - sampler: [none, rus, ros]
+  - sampler: [none, ros, rus]
     imputer: [simp]
     scaler: [std, mmx]
     method: [gnb, ann, xgb]
-    #method: [gnb]
 
-  #- imputer: [simp]
-  #  scaler: [std, nrm]
-  #  method: [rusboost, bbc, brfc]
-
+  - sampler: [none]
+    imputer: [simp]
+    scaler: [std, nrm]
+    method: [rusboost, bbc, brfc]
 
 
 
@@ -104,7 +107,7 @@ grid:
 # ensure that the hyper-parameters ae specified, otherwise
 # a default empty dictionary will be returned.
 search:
-  strategy: bayes # Bayes or Grid.
+  strategy: grid # Bayes or Grid.
   space:
 
     # -----------
@@ -125,11 +128,13 @@ search:
 
       ann:
         hidden_layer_sizes: # default (100, )
+          - [6, 4]
+          - [5, 5]
           - [20, 20]
           - [100, 100]
-          - [100, 100, 100]
-        activation: [relu, tanh] # identity, logistic, tanh, relu (default)
-        #solve: ['adam']   # lbfgs, sgd, adam (default) not working
+          #- [100, 100, 100]
+        activation: [relu] # identity, logistic, tanh, relu (default)
+        #solve: ['adam']   # lbfgs, sgd, adam (default)
         alpha: [0.01, 1.0] # default 0.0001
         #batch_size: [auto] # default auto
         #learning_rate: [constant] # constant (default), invscaling, adaptive
@@ -140,24 +145,15 @@ search:
         #warm_start: [False]
         #momentum: [0.9]
 
-      cann:
-        hidden_layer_sizes:
-          - [20, 20]
-          - [100, 100]
-          - [100, 100, 100]
-        activation: [relu]
-        alpha: [0.01, 1.0]
-
       xgb:
         use_label_encoder: [False]
-        colsample_bytree: [0.6, 0.8, 1.0]
-        gamma: [0.5, 1.0, 1.5, 2.0, 5.0]
-        learning_rate: [0.1]          # default 0.1
-        max_depth: [2, 5, 10]         # default 3
-        n_estimators: [10, 100, 500]  # default 100
-        subsample: [0.2, 0.6, 0.8, 1.0]
-        eval_metric: [logloss]        # default logloss
-        min_child_weight: [1, 5, 10]
+        #colsample_bytree: [0.1, 0.8]
+        #gamma: [0.001, 1]
+        #learning_rate: [0.01]    # default 0.1
+        #max_depth: [2, 10]       # default 3
+        #n_estimators: [10, 100]  # default 100
+        #subsample: [0.2, 0.8]
+        eval_metric: [logloss]   # default logloss
 
       adaboost:
         n_estimators: [20, 40, 50]
@@ -198,12 +194,12 @@ search:
         #  - [100, 100, 100]
         activation: [relu]
         #solve: ['adam']
-        alpha: [0.01, 1.0, log-uniform]
+        alpha: [0.01, 10.0, log-uniform]
         #batch_size: [auto]
         #learning_rate: [constant]
         #learning_rate_init: [0.001]
-        #power_t: [0.5]
-        max_iter: [5000]
+        power_t: [0.1, 0.9, log-uniform]
+        max_iter: [10000]
         #tol: [1e-4]
         #warm_start: [False]
         momentum: [0.1, 0.9, log-uniform]

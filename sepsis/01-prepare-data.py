@@ -233,7 +233,7 @@ from utils.sklearn.preprocessing import DeltaTransformer
 # Create transformer object
 delta = DeltaTransformer(by='PersonID',
     date='date_collected', keep=True,
-    periods=[1,2], method='diff',
+    periods=[1,2,5,7,9], method='diff',
     resample_params={'rule': '1D'},
     function_params={'fill_method': 'ffill'})
 
@@ -243,7 +243,7 @@ df_diff = delta.fit_transform(piv.reset_index())
 # Create transformer object
 delta = DeltaTransformer(by='PersonID',
     date='date_collected', keep=True,
-    periods=[1,2], method='pct_change',
+    periods=[1,2,5,7,9], method='pct_change',
     resample_params={'rule': '1D'},
     function_params={'fill_method': 'ffill'})
 

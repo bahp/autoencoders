@@ -73,19 +73,11 @@ count_org.to_html(Path(args.path) / 'graphs' / '02.counts.organism.html')
 # ---------------------------
 # Correlation
 # ---------------------------
-# Libraries
-import seaborn as sns
-import matplotlib.pyplot as plt
+# Keep
+keep = [c for c in df.columns if c.isupper()]
 
 # Remove some columns
-aux = df.copy(deep=True) \
-    .drop(columns=[
-        'Index',
-        'Unnamed: 0',
-        'PersonID',
-        'idx_to_sample',
-        'idx_to_death'],
-        errors='ignore')
+aux = df[keep].copy(deep=True)
 
 # Compute correlation
 corr = aux.corr()
@@ -111,7 +103,6 @@ import plotly.express as px
 
 # Reverse corr
 #corr = corr[corr.columns[::-1]].T
-
 
 # Plot using imshow
 fig = px.imshow(corr*100,
@@ -155,3 +146,139 @@ fig.update_layout(
 fig.data[0].update(zmin=-1.0, zmax=1.0)
 fig.show()
 """
+
+
+# -----------------------------------------
+# Display CO-OCCURRENCE
+# -----------------------------------------
+# Libraries
+import numpy as np
+
+# When displaying the co-occurrence matrix, it indicates
+# whether the whole date and time should match, or whether
+# we should only consider the date.
+USE_DATETIME = False
+
+# Normalize date
+# .. note: When normalizing the data, those bio-markers
+#          which are sampled frequently (e.g. hourly)
+#          will appear with less frequency since different
+#          hours for a same date will be merge to such date.
+if not USE_DATETIME:
+    df.date_collected = pd.to_datetime(df.date_collected)
+    df.date_collected = df.date_collected.dt.normalize()
+
+# Keep
+keep = [c for c in df.columns if c.isupper()]
+
+# Format pivot table
+piv = df[keep].notna().astype(int)
+
+#Compute co-occurrence (numpy)
+# v.T.dot(v) # numpy
+# np.einsum('ij,ik->jk', df, df)
+
+# Compute co-occurrence
+coocc = piv.T.dot(piv)
+coocc_pct = (coocc / np.diag(coocc)) * 100
+#coocc_pct = coocc.div(np.diag(coocc)) * 100
+
+def to_flat_index(m):
+    return ['-'.join(col).rstrip('_') for col in m]
+
+def to_flat_matrix(m):
+    aux = m.copy(deep=True)
+    aux.columns = to_flat_index(aux.columns.values)
+    aux.index = to_flat_index(aux.index.values)
+    return aux
+
+def to_cluster(m):
+    # Libraries
+    from sklearn.cluster import AgglomerativeClustering
+    model = AgglomerativeClustering(n_clusters=4, affinity="euclidean")
+    # Compute
+    model = model.fit(m)
+    new_order = np.argsort(model.labels_)
+    print(new_order)
+    print(m.columns)
+    #ordered_dist = a[new_order]  # can be your original matrix instead of dist[]
+    #ordered_dist = ordered_dist[:, new_order]
+    print(m)
+    print(m.iloc[:, new_order])
+    return m.iloc[:, new_order]
+
+# Format to plot (panel and bio-marker code)
+#aux1 = to_flat_matrix(coocc)
+#aux2 = to_flat_matrix(coocc_pct)
+
+
+# Format to plot (only bio-marker code)
+aux1 = coocc.copy(deep=True)
+aux2 = coocc_pct.copy(deep=True)
+
+# Agglomerative
+#aux1 = to_cluster(aux1)
+#aux2 = to_cluster(aux2)
+
+def check_symmetric(a, rtol=1e-05, atol=1e-08):
+    return np.allclose(a, a.T, rtol=rtol, atol=atol)
+
+if not check_symmetric(coocc.to_numpy()):
+    print("[Warning] Co-occurrence matrix (ratio) is not symmetric!")
+
+if not check_symmetric(coocc_pct.to_numpy(), rtol=1, atol=1):
+    print("[Warning] Co-occurrence matrix (pct) is not symmetric!")
+
+# .. note: It makes sense that the co-occurrence matrix in pct
+#          is not symmetric since it is divided by the corresponding
+#          column (e.g. alb-crp, alb/crp  crp/alb). We would need to
+#          keep the maximum of the two rather than the diagonal if
+#          we want a symmetric table.
+
+# Show (co-occurrence)
+fig = px.imshow(aux1,
+    color_continuous_scale='Reds',
+    #zmin=-100.0, zmax=100.0,
+    text_auto='.0f'
+)
+
+fig.update_layout(
+    title=dict(
+        text=str('Co-occurrence (#)'),
+        x=0.5
+    ),
+    yaxis=dict(
+        tickmode='linear',
+        tickfont=dict(size=8)
+    ),
+    xaxis = dict(
+        tickmode='linear',
+        tickfont=dict(size=8)
+    )
+)
+fig.write_html(Path(args.path) / 'graphs' / '05.hm.cooccurrence.html')
+fig.show()
+
+# Show (co-occurrence percent)
+fig = px.imshow(aux2,
+    color_continuous_scale='Reds',
+    #zmin=-100.0, zmax=100.0,
+    text_auto='.0f'
+)
+
+fig.update_layout(
+    title=dict(
+        text=str('Co-occurrence (%)'),
+        x=0.5
+    ),
+    yaxis=dict(
+        tickmode='linear',
+        tickfont=dict(size=8)
+    ),
+    xaxis = dict(
+        tickmode='linear',
+        tickfont=dict(size=8)
+    )
+)
+fig.show()
+fig.write_html(Path(args.path) / 'graphs' / '05.hm.cooccurrence.pct.html')

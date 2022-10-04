@@ -115,7 +115,7 @@ import plotly.graph_objects as go
 #col_cycle = cycle(px.colors.qualitative.Alphabet)
 #col_cycle = cycle(px.colors.sequential.Viridis)
 #col_cycle = cycle(px.colors.cyclical.Twilight)
-col_cycle = cycle(n_colorscale("viridis", n=5))
+col_cycle = cycle(n_colorscale("viridis", n=args.norgs))
 
 # Compute groups
 g = aux.groupby(level=[0, 2], axis=1)

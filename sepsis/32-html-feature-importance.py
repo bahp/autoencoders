@@ -6,9 +6,12 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 from sklearn.preprocessing import LabelEncoder
 
-# Configure
-OUTPATH = Path('./objects/datasets/set1')
 
+# -------------------------
+# Constants
+# -------------------------
+# The output path
+PATH = Path('./objects/datasets/test')
 
 F_FBC = [
     'PLT',
@@ -57,11 +60,25 @@ F_BONE = [
     'TP'
 ]
 
-
 FEATURES = F_BONE
 
+
+# -------------------------
+# Parameters
+# -------------------------
+# Libraries
+import argparse
+
+# Parameters
+parser = argparse.ArgumentParser()
+parser.add_argument("--path", type=str, nargs='?',
+                    const=PATH, default=PATH,
+                    help="path containing grid-search files.")
+args = parser.parse_args()
+
+
 # Load data
-df = pd.read_csv(OUTPATH / 'data.csv')
+df = pd.read_csv(Path(args.path) / 'data.csv')
 
 
 # ---------------------------------------------------------------
@@ -121,8 +138,8 @@ for i, (k,v) in enumerate(MAP.items()):
     # tau, p_value = stats.kendalltau(X, y)
 
 
-plt.savefig(OUTPATH / 'graphs' / '03.importance.univariate.png')
-plt.show()
+plt.savefig(Path(args.path) / 'graphs' / '03.importance.univariate.png')
+#plt.show()
 
 
 """
@@ -132,6 +149,8 @@ ax.set_xticklabels(features, rotation=45, fontdict={'fontsize': 3})
 ax.set_title(model.__class__.__name__)
 """
 
+import sys
+sys.exit()
 
 
 
@@ -167,7 +186,7 @@ fig = px.box(aux, #x="variable",
 )
 fig.update_yaxes(matches=None)
 fig.update_traces(quartilemethod="exclusive") # or "inclusive", or "linear" by default
-fig.write_html(Path(OUTPATH) / '03.boxplot.html')
+fig.write_html(Path(args.path) / '03.boxplot.html')
 fig.show()
 
 

@@ -175,10 +175,10 @@ def create_fe_dataframe_from_yaml(data, cfg):
     #    # Load file
 
     # Get mode
-    mode = cfg.get('mode', 'normal')
+    strategy = cfg.get('strategy', 'normal')
 
     # Get feature engineering config
-    fe_cfg = cfg.feature_engineering.get(mode, {}).copy()
+    fe_cfg = cfg.feature_engineering.get(strategy, {}).copy()
 
     # Features to aggregate
     features_ = fe_cfg.get('features', 'all')
@@ -191,11 +191,11 @@ def create_fe_dataframe_from_yaml(data, cfg):
     fe_cfg['groupby'] = cfg.pid
 
     # Compute
-    if mode == 'aggregation':
+    if strategy == 'aggregation':
         return create_df_aggregated(data, **fe_cfg)
-    if mode == 'delta':
+    if strategy == 'delta':
         return create_df_delta(data, **fe_cfg)
-    elif mode == 'normal':
+    elif strategy == 'normal':
         return data[cfg.features + [cfg.outcome]].copy(deep=True)
 
     # Return data
@@ -280,6 +280,7 @@ def create_df_aggregated(data, features, methods, label,
     df.columns = ['_'.join(col).strip()
         for col in df.columns.values]
     df.rename(columns={'%s_max' % label: label}, inplace=True)
+
     # Return
     return df
 
@@ -325,7 +326,7 @@ with open(Path(args.yaml)) as file:
 # Check CONFIG is valid!
 
 # Workbench path
-WORKBENCH = Path(CONFIG.outpath) / CONFIG.mode / TIMESTAMP
+WORKBENCH = Path(CONFIG.outpath) / CONFIG.strategy / TIMESTAMP
 
 # Create directory
 WORKBENCH.mkdir(parents=True, exist_ok=True)
@@ -386,8 +387,6 @@ data['label'] = data.pathogenic
 data['label'] = LabelEncoder().fit_transform(data.micro_code)
 
 
-
-
 # ----------------------------------
 # Loop
 # ----------------------------------
@@ -419,6 +418,7 @@ y = df[CONFIG.outcome]
 np.save(WORKBENCH / 'data' / 'X.npy', X)
 np.save(WORKBENCH / 'data' / 'y.npy', y)
 df.to_csv(WORKBENCH / 'data' / 'Xy.csv')
+data.to_csv(WORKBENCH / 'data' / 'data.csv')
 
 #X, y = _ALL.get('rus').fit_resample(X, y)
 
@@ -438,7 +438,7 @@ X = iqr.fit_transform(X)
 """
 
 # Create folds
-skf = StratifiedKFold(n_splits=10, shuffle=False)
+skf = StratifiedKFold(n_splits=5, shuffle=False)
 
 # Create grid
 grid = ParameterGrid(CONFIG.grid)

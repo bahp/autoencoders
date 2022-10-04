@@ -78,14 +78,14 @@ data = data[data.examination_code.isin([
 ])]
 
 
-print(data)
+#print(data)##
 
 aux = data[['code', 'examination_code']].drop_duplicates()
 aux.to_html('here.html')
-print(aux)
+#print(aux)
 
-import sys
-sys.exit()
+#import sys
+#sys.exit()
 # Do some formatting.
 #data = data.replace({
 #    'micro_code': {
@@ -199,19 +199,17 @@ def to_flat_matrix(m):
     return aux
 
 # Format to plot (panel and bio-marker code)
-aux1 = to_flat_matrix(coocc)
-aux2 = to_flat_matrix(coocc_pct)
+#aux1 = to_flat_matrix(coocc)
+#aux2 = to_flat_matrix(coocc_pct)
 
 
 # Format to plot (only bio-marker code)
-"""
 aux1 = coocc.copy(deep=True) \
     .droplevel(0, axis=0) \
     .droplevel(0, axis=1)
 aux2 = coocc_pct.copy(deep=True) \
     .droplevel(0, axis=0) \
     .droplevel(0, axis=1)
-"""
 
 def check_symmetric(a, rtol=1e-05, atol=1e-08):
     return np.allclose(a, a.T, rtol=rtol, atol=atol)
@@ -249,7 +247,7 @@ fig.update_layout(
         tickfont=dict(size=8)
     )
 )
-#fig.write_html(Path(args.path) / 'graphs' / '05.hm.cooccurrence.html')
+fig.write_html(Path(args.path) / 'graphs' / '05.hm.cooccurrence.html')
 fig.show()
 
 # Show (co-occurrence percent)
@@ -274,7 +272,7 @@ fig.update_layout(
     )
 )
 fig.show()
-#fig.write_html(Path(args.path) / 'graphs' / '05.hm.cooccurrence.pct.html')
+fig.write_html(Path(args.path) / 'graphs' / '05.hm.cooccurrence.pct.html')
 
 
 

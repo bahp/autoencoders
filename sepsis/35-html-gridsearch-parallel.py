@@ -1,4 +1,5 @@
 # Generic
+import yaml
 import argparse
 import pandas as pd
 
@@ -40,8 +41,8 @@ DIMENSIONS = [
 COLOR = 'mean_test_gmean'
 
 # Path to load grid-search results.
-PATH = Path('objects/results/classification/normal/220906-191306')
-PATH = Path('objects/results/classification/delta/220907-122220')
+PATH = Path('objects/results/classification/normal/220923-192623')
+#PATH = Path('objects/results/classification/delta/220915-091843')
 
 
 
@@ -76,23 +77,70 @@ dfs = [(f, pd.read_csv(f))
         .glob('**/%s-*.csv' % args.keyword)
 ]
 
-# Combine into one
-if args.combine:
-    dfs = [('combined', pd.concat([e[1] for e in dfs]))]
+# Create index column
+table = pd.DataFrame()
+for path, df in dfs:
+    with open(path.with_suffix('.yaml')) as file:
+        info = pd.json_normalize(yaml.full_load(file))
+        info['link'] = '''<a href="./hiplot.%s.%s.html" target="_blank"> Link </a>''' % (
+            path.parent.parent.stem,
+            path.parent.stem)
+        table = table.append(info)
 
-# Add columns
-for name, df in dfs:
+
+# Filter information
+table = table[[
+    'features',
+    'filter.day.start',
+    'filter.day.end',
+    'strategy',
+    'search.strategy',
+    'link'
+]]
+
+# Output
+OUTPUT = Path('./parallel')
+
+# Create directory
+OUTPUT.mkdir(parents=True, exist_ok=True)
+
+# Save
+table.to_html(OUTPUT / 'hiplot.table.html',
+    index=False, justify='center',
+    escape=False)
+
+# Add path information
+for path, df in dfs:
+    #print("Loaded file... %s" % path)
+    df['path'] = path
+    df['strategy'] = path.parent.parent.stem
     if 'folder' in df:
         df['method'] = df.folder.str.split("-").str[-1]
         df['size'] = df.folder.map(df.groupby('folder').size())
 
+# Combine into one
+if args.combine:
+    aux = pd.concat([e[1] for e in dfs])
+    aux = aux.reset_index(drop=True)
+    dfs = [('combined', aux)]
 
+# Add columns
+#for name, df in dfs:
+#    print(name)
+#    if 'folder' in df:
+#        df['method'] = df.folder.str.split("-").str[-1]
+#        df['size'] = df.folder.map(df.groupby('folder').size())
+
+#import sys
+#sys.exit()
 # -------------------------
 # Visualise
 # -------------------------
 # Libraries
 import plotly.express as px
 import plotly.graph_objs as go
+import hiplot as hip
+
 from utils.plotly.parcoords import get_dimensions
 
 # Plot
@@ -101,6 +149,7 @@ for name, df in dfs:
     dnames = DIMENSIONS
     if args.method is not None:
         df = df[df.method == args.method]
+        df = df.dropna(axis=1, how='all')
         p = [e for e in df.columns if e.startswith('param_')]
         dnames = DIMENSIONS + p
 
@@ -130,8 +179,17 @@ for name, df in dfs:
             x=0.5, y=0.03
         )
     )
-    fig.show()
+    #fig.show()
     #fig.write_html(name.parent / '01.parallel.gridsearch.html')
+
+
+    # Create hiplot.
+    hip.Experiment.from_iterable(
+        df[cols + ['strategy']].round(decimals=3) \
+            .to_dict(orient='records')
+    ).to_html(OUTPUT / ('hiplot.%s.%s.html' % (
+        name.parent.parent.stem,
+        name.parent.stem)))
 
 
     """

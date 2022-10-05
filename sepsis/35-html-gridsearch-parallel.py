@@ -82,6 +82,7 @@ table = pd.DataFrame()
 for path, df in dfs:
     with open(path.with_suffix('.yaml')) as file:
         info = pd.json_normalize(yaml.full_load(file))
+        info['folder'] = path.parent.stem
         info['link'] = '''<a href="./hiplot.%s.%s.html" target="_blank"> Link </a>''' % (
             path.parent.parent.stem,
             path.parent.stem)
@@ -95,6 +96,7 @@ table = table[[
     'filter.day.end',
     'strategy',
     'search.strategy',
+    'folder',
     'link'
 ]]
 
@@ -183,13 +185,18 @@ for name, df in dfs:
     #fig.write_html(name.parent / '01.parallel.gridsearch.html')
 
 
+    if args.combine:
+        fname = 'hiplot.combined.html'
+    else:
+        fname = 'hiplot.%s.%s.html' % (
+            name.parent.parent.stem,
+            name.parent.stem)
+
     # Create hiplot.
     hip.Experiment.from_iterable(
         df[cols + ['strategy']].round(decimals=3) \
             .to_dict(orient='records')
-    ).to_html(OUTPUT / ('hiplot.%s.%s.html' % (
-        name.parent.parent.stem,
-        name.parent.stem)))
+    ).to_html(OUTPUT / fname)
 
 
     """

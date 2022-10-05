@@ -76,6 +76,7 @@ df = pd.read_csv(Path(args.path) / 'data.csv')
 #FEATURES = sorted(get_features_manual())
 #FEATURES = sorted(df.columns.tolist()[3:50])
 FEATURES = sorted(get_features_upper(df))
+#FEATURES = ['CRP']
 
 # Show
 print("\nData:")

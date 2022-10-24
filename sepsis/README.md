@@ -145,3 +145,54 @@ outpath/mode
      |- gridsearch-xxx.yaml  # yaml config used.
      |- gridsearch-xxx.csv   # Results for gridsearch.
 ```
+
+
+Predictions using LSTMs
+=======================
+
+This section....
+
+First, lets create the LSTM numpy matrices running...
+
+```
+80-create-lstm-matrix.py
+```
+
+The following constants can be edited:
+- **FEATURES_DICT:** Dictionary defining sets of features.
+- **LABELS:** The label for the classification task.
+- **PATH:** Full path to dataset
+- **WORKBENCH:** Full path to folder where matrices will be saved.
+
+
+The outputs will be saved in a newly created folder
+and the npy file names has the following naming
+convention:
+
+```
+matrix.<d_tuple>.<p_tuple>.w<window>.<imputer>.<scaler>.<features>.npy
+```
+
+where 
+ -  **d_tuple:** Days (start, end) to keep where micro sample is day 0.
+ -  **p_tuple:** Days (start, end) to set positive where micro sample is day 0.
+ -  **window:** Size of the rolling window
+ -  **imputer:** Method used for missing data (after ffill)
+ -  **scaler:** Method to preprocess the data 
+ -  **features:** Set of features used.
+
+```
+datasets
+   |- set1
+      |- data
+         |-yymmdd-hhmmss
+            |- matrix.-10_3.-5_3.w5.simp.std.bare.npy
+            |- matrix.-10_3.-5_3.w5.simp.std.wft.npy
+            |- ...
+```
+
+one the matrices have been created you can run...
+
+
+- 80-train-lst-manual.py
+- 80-train-lstm-opt.py

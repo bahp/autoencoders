@@ -27,6 +27,7 @@ from utils.lstm.preprocess import create_lstm_matrix
 # --------------------------------------------------
 # Define path
 PATH = Path('./objects/datasets/tidy.csv')
+#PATH = Path('./objects/datasets/data.csv')
 
 # Load data
 data = pd.read_csv(PATH,
@@ -34,6 +35,11 @@ data = pd.read_csv(PATH,
     dtype={'PersonID': 'str'},
     parse_dates=['date_collected',
                  'date_sample'])
+
+print(data)
+
+import sys
+sys.exit()
 
 # Keep raw copy
 raw = data.copy(deep=True)

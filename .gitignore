@@ -17,10 +17,13 @@
 **/*.sqlite3
 **/*.csv
 
+
 # Other
+
 package/*
 datasets/*
 sepsis/parallel/*
+sepsis/objects/results/*
 .idea/
 
 # -------------------------------------

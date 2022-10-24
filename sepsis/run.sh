@@ -86,4 +86,13 @@ python 04-bclass-loop-gscv.py --yaml ./yaml/run03/04.bclass.bayes.agg.yaml
 #    echo "$d"
 #done
 
+# ----------------------
+#
+# ----------------------
+# 80-create-matrix
+# 80-train-lstm-manual
+# 80-train-lstm-opt
+# tensorboard --logdir
+
+
 

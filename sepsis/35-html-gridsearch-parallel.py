@@ -56,7 +56,7 @@ parser.add_argument("--path", type=str, nargs='?',
                     help="path containing grid-search files.")
 parser.add_argument("--method", type=str, nargs='?',
                     const=None, default=None,
-                    help="filter by metho.")
+                    help="filter by method.")
 parser.add_argument("--keyword", type=str, nargs='?',
                     const=KEYWORD, default=KEYWORD,
                     help="prefix of the files (e.g. gridsearch).")
@@ -76,12 +76,13 @@ dfs = [(f, pd.read_csv(f))
     for f in Path(args.path) \
         .glob('**/%s-*.csv' % args.keyword)
 ]
-
+"""
 # Create index column
 table = pd.DataFrame()
 for path, df in dfs:
     with open(path.with_suffix('.yaml')) as file:
         info = pd.json_normalize(yaml.full_load(file))
+        info['folder'] = path.parent.stem
         info['link'] = '''<a href="./hiplot.%s.%s.html" target="_blank"> Link </a>''' % (
             path.parent.parent.stem,
             path.parent.stem)
@@ -95,8 +96,10 @@ table = table[[
     'filter.day.end',
     'strategy',
     'search.strategy',
+    'folder',
     'link'
 ]]
+"""
 
 # Output
 OUTPUT = Path('./parallel')
@@ -104,10 +107,14 @@ OUTPUT = Path('./parallel')
 # Create directory
 OUTPUT.mkdir(parents=True, exist_ok=True)
 
+"""
 # Save
 table.to_html(OUTPUT / 'hiplot.table.html',
     index=False, justify='center',
     escape=False)
+"""
+
+
 
 # Add path information
 for path, df in dfs:
@@ -183,13 +190,18 @@ for name, df in dfs:
     #fig.write_html(name.parent / '01.parallel.gridsearch.html')
 
 
+    if args.combine:
+        fname = 'hiplot.combined.html'
+    else:
+        fname = 'hiplot.%s.%s.html' % (
+            name.parent.parent.stem,
+            name.parent.stem)
+
     # Create hiplot.
     hip.Experiment.from_iterable(
         df[cols + ['strategy']].round(decimals=3) \
             .to_dict(orient='records')
-    ).to_html(OUTPUT / ('hiplot.%s.%s.html' % (
-        name.parent.parent.stem,
-        name.parent.stem)))
+    ).to_html(OUTPUT / fname)
 
 
     """

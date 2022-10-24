@@ -127,18 +127,27 @@ class DataFrameMixin:
 
 class AggregateTransformer(BaseEstimator, TransformerMixin):
     """"""
-    def __init__(self, aggmap={}, include=[], by=None):
+    def __init__(self, aggmap={}, include=[], by=None, labels=[]):
         """The constructor"""
         self.by = by
         self.aggmap = {}
         self.aggmap.update(aggmap)
         #self.exclude = [self.by, self.date]
         self.include = include
+        self.labels = labels
 
     def __repr__(self):
         """The representation"""
         return "AggregateTransformer(by=%s, aggmap=%s)" % \
                (self.by, self.aggmap)
+
+    def get_X(self):
+        """"""
+        pass
+
+    def get_y(self):
+        """"""
+        pass
 
     def fit(self, X, y=None):
         """Fit the transformer.
@@ -148,7 +157,7 @@ class AggregateTransformer(BaseEstimator, TransformerMixin):
                  as non numeric strings. Otherwise, the max function
                  will be associated to them.
         """
-        # Convert to dataframe
+        # Convert to DataFrame
         if not isinstance(X, pd.DataFrame):
             X = pd.DataFrame(X).convert_dtypes()
 
@@ -283,6 +292,9 @@ class DeltaTransformer(BaseEstimator, TransformerMixin):
 
     def transform(self, X, y=None):
         """Apply transformation.
+
+        .. note: Do i NEed to ensure sorting?
+
         """
 
         # Checks (what about columns?)
@@ -433,41 +445,33 @@ if __name__ == '__main__':
     # Note when wrapping around np.array for
     # some reason the convert dtypes does not
     # work.
-    data = [['a', '2022-01-01', 1, 2, 3, 4],
-            ['a', '2022-01-02', 5, 6, 7, 8],
-            ['a', '2022-01-04', 9, 1, 2, 3],
-            ['b', '2022-01-01', 1, 2, 3, 4],
-            ['b', '2022-01-02', 1, 2, 3, 3],
-            ['b', '2022-01-03', 1, 7, 3, 4],
-            ['c', '2022-01-01', 1, 2, 3, 3],
-            ['c', '2022-01-02', 1, 7, 3, 4],
-            ['c', '2022-01-03', 1, 3, 1, 4]]
+    data = [['a', '2022-01-01', 1, 2, 3, 4, True],
+            ['a', '2022-01-02', 5, 6, 7, 8, True],
+            ['a', '2022-01-04', 9, 1, 2, 3, True],
+            ['b', '2022-01-01', 1, 2, 3, 4, True],
+            ['b', '2022-01-03', 1, 2, 3, 3, False],
+            ['b', '2022-01-02', 1, 7, 3, 4, False],
+            ['c', '2022-01-01', 1, 2, 3, 3, False],
+            ['c', '2022-01-02', 1, 7, 3, 4, False],
+            ['c', '2022-01-03', 1, 3, 1, 4, False]]
 
     # What if two equal dates?!
     # What if missing days?
 
     # Assign names to columns
     data = pd.DataFrame(data,
-        columns=['patient', 'date', 'bp', 'hr', 'hrv', 'pulse'])
+        columns=['patient', 'date', 'bp', 'hr', 'hrv', 'pulse', 'y'])
 
-    """
-    FEATURES = [ 'age', 'weight',
-               'body_temperature',
-               'plt','haematocrit_percent']
-    OUTCOMES = ['study_no', 'shock', 'vomiting']
-
-    # Load dengue data
-    data = pd.read_csv('../datasets/dengue/data.csv')
-    data = data[FEATURES + OUTCOMES]
-    data = data.dropna(how='any', subset=FEATURES)
-    """
-    # Create aggmap
+    # Create aggregation map
     aggmap = {
         'bp': 'mean',
-        'hr': ['min', 'max', 'median']
+        'hr': ['min', 'max', 'median'],
+        'y': ['last']
     }
     agg = AggregateTransformer(aggmap=aggmap,
-        include=['bp', 'hr'], by='patient')
+        include=['bp', 'hr', 'y'],
+        labels=['y'],
+        by='patient')
 
 
     # Fit and transform
@@ -495,7 +499,7 @@ if __name__ == '__main__':
     # Create filter object
     delta = DeltaTransformer(by='patient',
         date='date', include=[],
-        periods=[1,2], method='pct_change',
+        periods=[1,2], method='diff',
         resample_params={'rule': '1D'},
         function_params={'fill_method': 'ffill'})
 

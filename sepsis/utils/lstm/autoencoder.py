@@ -12,6 +12,13 @@ from keras.layers import RepeatVector
 from keras.layers import TimeDistributed
 from tensorflow.keras import optimizers
 
+from keras.initializers import GlorotUniform
+from keras.initializers import Orthogonal
+from keras.initializers import Constant
+
+# Define SEED.
+SEED = 2022
+
 """
 Notes:
 
@@ -32,6 +39,9 @@ class Classifier:
     def fit(self, **kwargs):
         self.history_ = self.model_.fit(**kwargs)
         return self
+
+    def compile(self, **kwargs):
+        self.model_.compile(**kwargs)
 
     def predict(self, data, **kwargs):
         return self.model_.predict(data, **kwargs)
@@ -424,3 +434,586 @@ class BidirectionalLSTM_MLM(Classifier):
         model.build()
 
         self.model_ = model
+
+
+class MT_LSTM(Classifier):
+    """"""
+    def __init__(self, timesteps, features, outputs):
+        """
+        https://towardsdatascience.com/choosing-the-right-hyperparameters-for-a-simple-lstm-using-keras-f8e9ed76f046
+
+
+        softmax?
+
+        I recommend you first try SGD with default parameter values. If
+        it still doesn't work, divide the learning rate by 10. Do that a
+        few times if necessary. If your learning rate reaches 1e-6 and it
+        still doesn't work, then you have another problem.
+
+        Parameters
+        ----------
+        timesteps: int
+            The number of timesteps
+        features: int
+            The number of features
+        outputs: int
+            The number of outputs
+        """
+        # Libraries
+
+        #opt = tf.keras.optimizers.SGD(lr=0.01)
+        opt = tf.keras.optimizers.SGD(lr=1e-5)
+
+        # Layers
+        layers = tf.keras.layers
+
+        # Define model
+        inputs = layers.Input(shape=(timesteps, features))
+        hidden = layers.LSTM(32)(inputs)
+        # Dropout
+        out1 = layers.Dense(1, activation="sigmoid", name="binary_out")(hidden)
+        #out2 = layers.Dense(1, activation=None, name="reg_out")(hidden)
+
+        # Creat model
+        model = tf.keras.Model(inputs=inputs, outputs=[out1])
+
+        #model.compile(
+        #    loss={
+        #        "binary_out": "binary_crossentropy",
+        #    },
+        #    #optimizer='adam',
+        #    optimizer=opt,
+        #    metrics={"binary_out":
+        #                 ["accuracy", tf.keras.metrics.AUC()]}
+        #)
+
+        self.model_ = model
+
+
+def get_manual_model(name, **kwargs):
+    """"""
+    if name=='dense':
+        return None
+    elif name=='LSTM_reg':
+        return None
+    elif name=='Damien':
+        return None
+    return None
+
+
+
+class Dense_3(Classifier):
+    """"""
+    def __init__(self, timesteps, features, outputs):
+        """
+        I recommend you first try SGD with default parameter values. If
+        it still doesn't work, divide the learning rate by 10. Do that a
+        few times if necessary. If your learning rate reaches 1e-6 and it
+        still doesn't work, then you have another problem.
+
+        Parameters
+        ----------
+        timesteps: int
+            The number of timesteps
+        features: int
+            The number of features
+        outputs: int
+            The number of outputs
+        """
+        # Libraries
+        from keras.layers import Dense
+        from keras.models import Sequential
+
+        # Create model
+        model = Sequential()
+        model.add(Dense(2, input_dim=2, activation='relu'))
+        model.add(Dense(10, activation='relu'))
+        model.add(Dense(2, activation='sigmoid'))
+
+        # Set model
+        self.model_ = model
+
+
+class Damien(Classifier):
+    """"""
+
+    def __init__(self, timesteps, features, outputs):
+        """"""
+        # Libraries
+        from keras.models import Sequential
+        from keras.layers import Dense
+        from keras.layers import Flatten
+        from keras.layers import Dropout
+        from keras.layers import LSTM
+        from keras import regularizers
+        from keras.layers import BatchNormalization
+        from keras.layers import GRU
+        import numpy as np
+
+        # Create model
+        model = Sequential()
+        model.add(GRU(
+            units=256,
+            activation='tanh',
+            input_shape=(timesteps, features),
+            return_sequences=True))
+        model.add(Dropout(rate=0.2))
+        model.add(BatchNormalization())
+        model.add(GRU(
+            units=128,
+            activation='tanh',
+        ))
+        model.add(Dropout(rate=0.2))
+        model.add(BatchNormalization())
+        model.add(Dense(
+            units=12,
+            activation='tanh',
+            kernel_regularizer=regularizers.l2(0.01))
+        )
+        model.add(Dense(1,
+            activation='sigmoid',
+            bias_initializer=tf.keras.initializers.Constant(
+                np.array([-2.65917355])
+            )
+        ))
+        # Set model
+        self.model_ = model
+
+        return model
+
+
+
+
+class LSTM_reg(Classifier):
+    """"""
+    def __init__(self, timesteps, features, outputs):
+        """Creates the constructor.
+
+        Parameters
+        ----------
+        timesteps: int
+            The number of timesteps.
+        features: int
+            The number of features.
+        outputs: int
+            The number of outputs.
+        """
+        self.timesteps = timesteps
+        self.features = features
+        self.outputs = outputs
+
+    def build(self, hp=None):
+        """"""
+        # Libraries
+        from utils.keras.layers import Attention
+        from keras.layers import BatchNormalization
+
+        # Create model
+        model = tf.keras.Sequential()
+        model.add(Input(
+            shape=(self.timesteps, self.features)
+        ))
+        model.add(LSTM(
+            units=8,
+            activation='relu',
+            dropout=0.2,
+            recurrent_dropout=0.2,
+            input_shape=(self.timesteps, self.features),
+            bias_regularizer='l2',
+            recurrent_regularizer='l2',
+            #return_sequences=True
+        ))
+        model.add(Dropout(rate=0.2))
+        model.add(BatchNormalization())
+        #model.add(Attention()) # needs return_sequences=True
+        model.add(Dense(self.outputs,
+            activation='sigmoid',
+        ))
+
+        return model
+
+    def fit(self, hp, model, *args, **kwargs):
+        """"""
+        return model.fit(*args, shuffle=True, **kwargs)
+
+
+class DenseV1(Classifier):
+    """"""
+    def __init__(self, timesteps, features, outputs):
+        """Creates the constructor.
+
+        Parameters
+        ----------
+        timesteps: int
+            The number of timesteps.
+        features: int
+            The number of features.
+        outputs: int
+            The number of outputs.
+        """
+        self.timesteps = timesteps
+        self.features = features
+        self.outputs = outputs
+
+    def build(self, hp=None):
+        """"""
+        # Libraries
+        from utils.keras.layers import Attention
+        from keras.layers import BatchNormalization
+        from tensorflow.keras.layers import Flatten
+
+        # Create model
+        model = tf.keras.Sequential()
+        model.add(Flatten(input_shape=(self.timesteps, self.features)))
+        model.add(Dense(56, activation='relu'))
+        model.add(Dropout(rate=0.2))
+        model.add(Dense(128, activation='relu'))
+        model.add(Dropout(rate=0.2))
+        model.add(Dense(256, activation='relu'))
+        model.add(Dropout(rate=0.2))
+        model.add(Dense(self.outputs, activation='sigmoid'))
+
+        # Return
+        return model
+
+# --------------------------------------------------
+# Keras Tuner
+# --------------------------------------------------
+# Libraries
+import keras_tuner
+
+# Specific
+from utils.keras.metrics import METRICS
+
+
+class KerasTunerDense(keras_tuner.HyperModel):
+    pass
+
+class KerasTunerLSTM(keras_tuner.HyperModel):
+    """Creates an LSTM hypermodel.
+
+    See R1: https://www.kaggle.com/code/iamleonie/time-series-tips-tricks-for-training-lstms
+    See R2: https://towardsdatascience.com/implementation-differences-in-lstm-layers-tensorflow-vs-pytorch-77a31d742f74
+    See R3: https://towardsdatascience.com/choosing-the-right-hyperparameters-for-a-simple-lstm-using-keras-f8e9ed76f046
+    """
+    def __init__(self, timesteps, features, outputs):
+        """Creates the constructor.
+
+        Parameters
+        ----------
+        timesteps: int
+            The number of timesteps.
+        features: int
+            The number of features.
+        outputs: int
+            The number of outputs.
+        """
+        self.timesteps = timesteps
+        self.features = features
+        self.outputs = outputs
+
+    def build(self, hp):
+        """Builds and compiles the model.
+
+        Questions
+        ---------
+            Do I need Input layer and/or input_shape?
+            Is it worth to stack LSTM layers?
+
+            Is it worth to include Regularisation?
+                We can add dropout for regularisation by setting the
+                recurrent_dropout value. Alternatively, it is also possible
+                to include a Dropout layer.
+
+            Is it worth adding time awareness?
+                The time series are not very long. If time series have
+                enough samples, it is possible to use ACF and PACF (see
+                R1) as an additional input variable.
+
+        Notes
+        -----
+            Using L1 and L2 regularization is called ElasticNet
+
+            Choosing the right amount of nodes and layers [R3]
+                - A common rule:
+                    N_h = (N_s) / (alpha * (N_i + N_o))
+                - A basic rule:
+                    N_h = (2/3) * (N_i + N_o)
+
+                    where
+                       N_i is the number of input neurons
+                       N_o is the number of output neurons
+                       N_s is the number of samples in training data
+                       alpha scaling factor between [2, 10]
+
+            Ideally, every LSTM layer should be accompanied by a Dropout layer
+            where 20% os often used as a good compromise between retaining model
+            accuracy and preventing overfitting.
+
+            In general, with one LSTM layer is generally enough.
+
+            In general, loss function and activation function are chosen together.
+                - activation is 'softmax' then loss is 'binary cross-entropy'
+
+            The correct bias is b_0 = log(pos/neg) thus...
+                Dense(1, activation='sigmoid', bias_initializer=
+                    tf.keras.initializers.Constant(np.log([pos/neg]))
+
+        Options
+        -------
+            hp_units = hp.Int('units', min_value=32, max_value=512, step=32)
+            hp_units = hp.Choice('units', [8, 16, 32]),
+            regularizers = hp.Choice('bias_regularizer',
+                L1L2(l1=0.0, l2=0.0), # None
+                L1L2(l1=0.1, l2=0.0), # 'l1'
+                L1L2(l1=0.0, l2=0.1)  # 'l2'
+            ]),
+
+        Parameters
+        ----------
+        hp: dict-like
+            The hyper-parameters map.
+
+        Returns
+        -------
+        The model.
+        """
+        # Libraries
+        #import tensorflow as tf
+        #from tensorflow.keras.layers import LSTM
+        #from tensorflow.keras.layers import Input
+        #from tensorflow.keras.layers import Dense
+        #from tensorflow.keras.initializers import GlorotUniform
+        #from tensorflow.keras.initializers import Orthogonal
+
+        from keras.regularizers import L1L2
+
+        # Constants (for reproducibility)
+        initializer_glorot = GlorotUniform(seed=SEED)
+        initializer_orthogonal = Orthogonal(gain=1.0, seed=SEED)
+
+        # Create model
+        model = tf.keras.Sequential()
+        model.add(Input(
+            shape=(self.timesteps, self.features)
+        ))
+        model.add(LSTM(
+            units=hp.Int('units', min_value=32, max_value=512, step=32),
+            activation=hp.Choice('activation', ['relu', 'tanh']),
+            dropout=hp.Choice('dropout', [0., 0.2]),
+            recurrent_dropout=hp.Choice('recurrent_dropout', [0., 0.2]),
+            input_shape=(self.timesteps, self.features),
+            kernel_initializer=initializer_glorot,
+            recurrent_initializer=initializer_orthogonal,
+            bias_regularizer=hp.Choice('bias_regularizer',
+                ['l1', 'l2']), #l1l2
+            recurrent_regularizer=hp.Choice('recurrent_regularizer',
+                ['l1', 'l2']), #l1l2
+        ))
+        model.add(Dense(self.outputs,
+            activation='sigmoid',
+            kernel_initializer=initializer_glorot
+        ))
+
+        # Tune the learning rate for the optimizer
+        # Choose an optimal value from 0.01, 0.001, or 0.0001
+        hp_learning_rate = hp.Choice('learning_rate', values=[1e-2, 1e-3, 1e-4])
+
+        # Optimizer
+        optimizer =  tf.keras.optimizers.Adamax(learning_rate=hp_learning_rate)
+
+        # Compile model
+        # See https://neptune.ai/blog/keras-metrics
+        model.compile(
+            loss='binary_crossentropy',  # f1_loss, binary_crossentropy
+            optimizer=optimizer,
+            metrics=[
+                METRICS.get('acc'),
+                METRICS.get('prec'),
+                METRICS.get('recall'),
+                METRICS.get('auc'),
+                METRICS.get('prc'),
+                METRICS.get('tp'),
+                METRICS.get('tn'),
+                METRICS.get('fp'),
+                METRICS.get('fn'),
+            ]
+        )
+
+        return model
+
+    def fit(self, hp, model, *args, **kwargs):
+        """"""
+        return model.fit(
+            *args,
+            shuffle=hp.Boolean("shuffle"), # Shuffle the data in each epoch.
+            **kwargs
+        )
+
+
+
+class KerasTunerGRU(keras_tuner.HyperModel):
+    """Creates an GRU hypermodel.
+
+    This is the model shared by Damien K. Ming.
+
+    """
+    def __init__(self, timesteps, features, outputs):
+        """Creates the constructor.
+
+        Parameters
+        ----------
+        timesteps: int
+            The number of timesteps.
+        features: int
+            The number of features.
+        outputs: int
+            The number of outputs.
+        """
+        self.timesteps = timesteps
+        self.features = features
+        self.outputs = outputs
+
+    def build(self, hp):
+        """Builds and compiles the model.
+
+        Questions
+        ---------
+            Do I need Input layer and/or input_shape?
+            Is it worth to stack LSTM layers?
+
+            Is it worth to include Regularisation?
+                We can add dropout for regularisation by setting the
+                recurrent_dropout value. Alternatively, it is also possible
+                to include a Dropout layer.
+
+            Is it worth adding time awareness?
+                The time series are not very long. If time series have
+                enough samples, it is possible to use ACF and PACF (see
+                R1) as an additional input variable.
+
+        Notes
+        -----
+            Using L1 and L2 regularization is called ElasticNet
+
+            Choosing the right amount of nodes and layers [R3]
+                - A common rule:
+                    N_h = (N_s) / (alpha * (N_i + N_o))
+                - A basic rule:
+                    N_h = (2/3) * (N_i + N_o)
+
+                    where
+                       N_i is the number of input neurons
+                       N_o is the number of output neurons
+                       N_s is the number of samples in training data
+                       alpha scaling factor between [2, 10]
+
+            Ideally, every LSTM layer should be accompanied by a Dropout layer
+            where 20% os often used as a good compromise between retaining model
+            accuracy and preventing overfitting.
+
+            In general, with one LSTM layer is generally enough.
+
+            In general, loss function and activation function are chosen together.
+                - activation is 'softmax' then loss is 'binary cross-entropy'
+
+            The correct bias is b_0 = log(pos/neg) thus...
+                Dense(1, activation='sigmoid', bias_initializer=
+                    tf.keras.initializers.Constant(np.log([pos/neg]))
+
+        Options
+        -------
+            hp_units = hp.Int('units', min_value=32, max_value=512, step=32)
+            hp_units = hp.Choice('units', [8, 16, 32]),
+            regularizers = hp.Choice('bias_regularizer',
+                L1L2(l1=0.0, l2=0.0), # None
+                L1L2(l1=0.1, l2=0.0), # 'l1'
+                L1L2(l1=0.0, l2=0.1)  # 'l2'
+            ]),
+
+        Parameters
+        ----------
+        hp: dict-like
+            The hyper-parameters map.
+
+        Returns
+        -------
+        The model.
+        """
+
+        # Libraries
+        from keras.models import Sequential
+        from keras.layers import Dense
+        from keras.layers import Flatten
+        from keras.layers import Dropout
+        from keras.layers import LSTM
+        from keras import regularizers
+        from keras.layers import BatchNormalization
+        from keras.layers import GRU
+        import numpy as np
+
+        # Constants (for reproducibility)
+        initializer_glorot = GlorotUniform(seed=SEED)
+        initializer_orthogonal = Orthogonal(gain=1.0, seed=SEED)
+        initializer_constant = Constant(np.array([-2.65917355]))
+
+        # Create model
+        model = Sequential()
+        model.add(GRU(
+            units=hp.Int('units', min_value=32, max_value=256, step=32),
+            activation='tanh',
+            input_shape=(self.timesteps, self.features),
+            return_sequences=True))
+        model.add(Dropout(rate=0.2))
+        model.add(BatchNormalization())
+        model.add(GRU(
+            units=hp.Int('units', min_value=32, max_value=128, step=32),
+            activation='tanh',
+        ))
+        model.add(Dropout(rate=0.2))
+        model.add(BatchNormalization())
+        model.add(Dense(
+            units=hp.Int('units', min_value=10, max_value=20, step=2),
+            activation='tanh',
+            kernel_regularizer=regularizers.l2(0.01))
+        )
+        model.add(Dense(1,
+            activation='sigmoid',
+            bias_initializer=initializer_constant)
+        )
+
+        # Tune the learning rate for the optimizer
+        # Choose an optimal value from 0.01, 0.001, or 0.0001
+        hp_learning_rate = hp.Choice('learning_rate', values=[1e-2, 1e-3, 1e-4])
+
+        # Optimizer
+        optimizer =  tf.keras.optimizers.Adamax(learning_rate=hp_learning_rate)
+
+        # Compile model
+        # See https://neptune.ai/blog/keras-metrics
+        model.compile(
+            loss='binary_crossentropy',  # f1_loss, binary_crossentropy
+            optimizer=optimizer,
+            metrics=[
+                METRICS.get('acc'),
+                METRICS.get('prec'),
+                METRICS.get('recall'),
+                METRICS.get('auc'),
+                METRICS.get('prc'),
+                METRICS.get('tp'),
+                METRICS.get('tn'),
+                METRICS.get('fp'),
+                METRICS.get('fn'),
+            ]
+        )
+
+        return model
+
+    def fit(self, hp, model, *args, **kwargs):
+        """"""
+        return model.fit(
+            *args,
+            shuffle=hp.Boolean("shuffle"), # Shuffle the data in each epoch.
+            **kwargs
+        )
+

@@ -64,23 +64,28 @@ from imblearn.ensemble import BalancedRandomForestClassifier
 # --------------------------------------------------
 # Features to use for training.
 _FEATURES = {
+    'crp': [
+        'CRP'
+    ],
     'set1': [
-        'HCT',
-        'HGB',
-        'LY',
-        'MCH',
-        'MCHC',
-        'MCV',
-        'PLT',
-        'RBC',
-        'RDW',
-        'WBC'
+        'HCT', 'HGB', 'LY', 'MCH', 'MCHC', 'MCV',
+        'PLT', 'RBC', 'RDW', 'WBC'
     ],
     'set2': [
-        'HCT',
-        'HGB',
-        'PLT',
-        'WBC'
+        'HCT', 'HGB', 'PLT', 'WBC'
+    ],
+    'bare': [
+        'CRP', 'HCT', 'PLT', 'WBC'
+    ],
+    'fbc': [
+        'BASO', 'EOS', 'HCT', 'HGB', 'LY', 'MCH',
+        'MCHC', 'MCV', 'MONO', 'MPV', 'NEUT', 'NRBCA',
+        'PLT', 'RBC', 'RDW', 'WBC'
+    ],
+    'wft': [
+        'WFIO2', 'WCL', 'WG', 'WHB', 'WHBCO', 'WHBMET',
+        'WHBO2', 'WHCT', 'WHHB', 'WICA', 'WK', 'WLAC',
+        'WNA', 'WPCO2', 'WPH', 'WPO2'
     ]
 }
 
